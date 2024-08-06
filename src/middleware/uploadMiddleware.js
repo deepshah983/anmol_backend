@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 // Define the upload directory
-const uploadDir = path.join(process.cwd(), 'uploads', 'client_images');
+const uploadDir = path.join('uploads', 'client_images');
 
 // Ensure the upload directory exists
 if (!fs.existsSync(uploadDir)) {
