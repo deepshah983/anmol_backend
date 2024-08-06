@@ -1,29 +1,45 @@
 import { mongoose } from '../db/connection.js'; // Import mongoose from connection.js
 
-let clientSchema = new mongoose.Schema({
+const clientSchema = new mongoose.Schema({
     first_name: {
         type: String,
         required: true,
-        min: 4,
-        max: 15
+        minlength: 4,
+        maxlength: 15
     },
     last_name: {
         type: String,
         required: true,
-        min: 4,
-        max: 15
+        minlength: 4,
+        maxlength: 15
     },
     email: {
         type: String,
         required: true,
-        min: 4,
-        max: 15
+        unique: true,
+        match: [/.+@.+\..+/, 'Please enter a valid email address']
     },
     phone: {
         type: String,
         required: true,
-        min: 10,
-        max: 15
+        minlength: 10,
+        maxlength: 15,
+        match: [/^\d+$/, 'Phone number must contain only digits']
+    },
+    status: {
+        type: Number,
+        required: true,
+        enum: [0, 1],  // 0 for Inactive, 1 for Active
+        default: 1     // Default to Active
+    },
+    categoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        required: true
+    },
+    profileImage: {
+        type: String,  // You can also use Buffer if you want to store the image binary data directly
+        default: ''    // Default to an empty string if no image is provided
     }
 }, {
     timestamps: true
