@@ -4,13 +4,7 @@ import jwt from 'jsonwebtoken';
 
 // Add a new user
 const userAdd = (req, res) => {
-    const { error } = userSchema.validate(req.body);
-    if (error) {
-        return res.status(400).json({
-            error: true,
-            message: error.details[0].message
-        });
-    }
+
 
     User.findOne({ email: req.body.email })
         .then(existingUser => {
@@ -125,12 +119,6 @@ const deleteUser = (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-    const { error } = loginSchema.validate(req.body);
-    if (error) {
-        return res.status(400).json({
-            msg: error.details[0].message
-        });
-    }
 
     try {
         const { email, password } = req.body;
