@@ -6,12 +6,15 @@ import userRoute from './routes/user.routes.js';
 import categoryRoute from './routes/category.routes.js';
 import stockRoute from './routes/stock.routes.js';
 import authRoute from './routes/auth.routes.js';
+import cors from 'cors';
 
 
 const app = express();
 
 // For parsing application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+
 
 const port = process.env.PORT || 3000;
 
@@ -33,7 +36,19 @@ app.use(categoryRoute);
 app.use(stockRoute);
 app.use(authRoute);
 app.use('/uploads', express.static('uploads'));
+// Apply CORS middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000'); // replace with your frontend origin
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+  });
+  
 
+  // Handle the preflight request
+app.options('*', cors()); // Preflight OPTIONS request
+  
+  
 app.listen(port, () => {
     console.log(`Project run on this port ${port}`);
 });

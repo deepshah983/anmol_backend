@@ -1,4 +1,25 @@
-/node_modules
-/package-lock.json
-# Ignore .env files
+# Node modules
+/node_modules/
+
+# Environment variables
 .env
+
+# Build directories
+/dist/
+/build/
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.swp
