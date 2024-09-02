@@ -1,6 +1,7 @@
 import express from 'express';
 import { connection } from './db/connection.js';
 import 'dotenv/config';
+import dashboardRoute from './routes/dashboard.routes.js';
 import clientRoute from './routes/client.routes.js';
 import userRoute from './routes/user.routes.js';
 import categoryRoute from './routes/category.routes.js';
@@ -13,6 +14,7 @@ const app = express();
 
 // For parsing application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(cors());
 
 
@@ -30,6 +32,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 // Use routes
+app.use(dashboardRoute);
 app.use(userRoute);
 app.use(clientRoute);
 app.use(categoryRoute);
