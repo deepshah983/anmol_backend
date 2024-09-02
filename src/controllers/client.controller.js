@@ -1,5 +1,6 @@
 import Client from '../models/client.model.js';
 import fs from 'fs';
+import path from 'path';
 
 // Add a new client with profile image upload
 const clientAdd = async (req, res) => {
@@ -19,7 +20,7 @@ const clientAdd = async (req, res) => {
             phone: req.body.phone,
             status: req.body.status,
             categoryId: req.body.categoryId,
-            profileImage: req.file ? req.file.path : ''
+            profileImage: req.file ? req.file.path: ''
         });
 
         const savedClient = await client.save();
@@ -111,7 +112,6 @@ const updateClient = async (req, res) => {
         });
     }
 };
-
 // Delete a client
 const deleteClient = async (req, res) => {
     try {
@@ -141,7 +141,6 @@ const deleteClient = async (req, res) => {
         });
     }
 };
-
 export default {
     clientAdd,
     getAllClients,
