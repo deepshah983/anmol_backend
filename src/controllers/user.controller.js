@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 
 // Add a new user
 const userAdd = (req, res) => {
+ 
+  
   User.findOne({ email: req.body.email })
     .then((existingUser) => {
       if (existingUser) {
@@ -12,27 +14,27 @@ const userAdd = (req, res) => {
           details: "A user with this email already exists.",
         });
       }
-
+     console.log(req.body);
+     
       const user = new User({
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
+        userName: req.body.userName,
         email: req.body.email,
         phone: req.body.phone,
-        password: req.body.password,
-        role: req.body.role,
+       // password: req.body.password,
+       // role: req.body.role,
       });
 
       return user.save();
     })
     .then((user) => {
       res.status(200).json({
-        msg: "User added successfully",
+        message: "User added successfully",
         data: user,
       });
     })
     .catch((error) => {
       res.status(400).json({
-        msg: "User not added",
+        message: "User not added",
         error,
       });
     });
@@ -40,6 +42,7 @@ const userAdd = (req, res) => {
 
 // Get all users
 const getAllUsers = (req, res) => {
+  console.log("hello");
   User.find()
     .then((users) => {
       res.status(200).json({
@@ -48,7 +51,7 @@ const getAllUsers = (req, res) => {
     })
     .catch((error) => {
       res.status(400).json({
-        msg: "Error retrieving users",
+        message: "Error retrieving users",
         error,
       });
     });
@@ -64,13 +67,13 @@ const getUserById = (req, res) => {
         });
       } else {
         res.status(404).json({
-          msg: "User not found",
+          message: "User not found",
         });
       }
     })
     .catch((error) => {
       res.status(400).json({
-        msg: "Error retrieving user",
+        message: "Error retrieving user",
         error,
       });
     });
@@ -78,16 +81,19 @@ const getUserById = (req, res) => {
 
 // Update a user
 const updateUser = (req, res) => {
+  console.log(req.body);
+
+  
   User.findByIdAndUpdate(req.params.id, req.body, { new: true })
     .then((user) => {
       res.status(200).json({
-        msg: "User updated successfully",
+        message: "User updated successfully",
         data: user,
       });
     })
     .catch((error) => {
       res.status(400).json({
-        msg: "Error updating user",
+        message: "Error updating user",
         error,
       });
     });
@@ -99,17 +105,17 @@ const deleteUser = (req, res) => {
     .then((result) => {
       if (result) {
         res.status(200).json({
-          msg: "User deleted successfully",
+          message: "User deleted successfully",
         });
       } else {
         res.status(404).json({
-          msg: "User not found",
+          message: "User not found",
         });
       }
     })
     .catch((error) => {
       res.status(400).json({
-        msg: "Error deleting user",
+        message: "Error deleting user",
         error,
       });
     });
@@ -124,7 +130,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        msg: "Invalid credentials",
+        message: "Invalid credentials",
       });
     }
 
@@ -133,7 +139,7 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        msg: "Invalid credentials",
+        message: "Invalid credentials",
       });
     }
 
@@ -145,7 +151,7 @@ const loginUser = async (req, res) => {
     // Send success response
     return res.status(200).json({
       success: true,
-      msg: "Login successful",
+      message: "Login successful",
       accessToken,
       user: {
         id: user._id,
@@ -157,7 +163,7 @@ const loginUser = async (req, res) => {
     // Handle errors
     return res.status(500).json({
       success: false,
-      msg: "Error during login",
+      message: "Error during login",
       error: error.message,
     });
   }

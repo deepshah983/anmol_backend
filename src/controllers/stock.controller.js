@@ -10,13 +10,13 @@ const stockAdd = (req, res) => {
     stock.save()
     .then(stock => {
         res.status(200).json({
-            msg: "Stock added successfully",
+            message: "Stock added successfully",
             data: stock
         });
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Stock not added",
+            message: "Stock not added",
             error
         });
     });
@@ -32,7 +32,7 @@ const getAllStocks = (req, res) => {
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error retrieving stocks",
+            message: "Error retrieving stocks",
             error
         });
     });
@@ -48,13 +48,13 @@ const getStockById = (req, res) => {
             });
         } else {
             res.status(404).json({
-                msg: "Stock not found"
+                message: "Stock not found"
             });
         }
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error retrieving stock",
+            message: "Error retrieving stock",
             error
         });
     });
@@ -65,13 +65,13 @@ const updateStock = (req, res) => {
     Stock.findByIdAndUpdate(req.params.id, req.body, { new: true })
     .then(stock => {
         res.status(200).json({
-            msg: "Stock updated successfully",
+            message: "Stock updated successfully",
             data: stock
         });
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error updating stock",
+            message: "Error updating stock",
             error
         });
     });
@@ -83,17 +83,17 @@ const deleteStock = (req, res) => {
     .then(result => {
         if (result) {
             res.status(200).json({
-                msg: "Stock deleted successfully"
+                message: "Stock deleted successfully"
             });
         } else {
             res.status(404).json({
-                msg: "Stock not found"
+                message: "Stock not found"
             });
         }
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error deleting stock",
+            message: "Error deleting stock",
             error
         });
     });

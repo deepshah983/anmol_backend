@@ -14,7 +14,7 @@ const login = async (req, res) => {
         if (!user) {
             return res.status(400).json({
                 success: false,
-                msg: 'Invalid credentials',
+                message: 'Invalid credentials',
                 code: 400
             });
         }
@@ -24,7 +24,7 @@ const login = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({
                 success: false,
-                msg: 'Invalid credentials',
+                message: 'Invalid credentials',
                 code: 400
             });
         }
@@ -38,7 +38,7 @@ const login = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            msg: 'Login successful',
+            message: 'Login successful',
             accessToken,
             user: {
                 id: user._id,
@@ -50,7 +50,7 @@ const login = async (req, res) => {
     } catch (err) {
         return res.status(500).json({
             success: false,
-            msg: 'Error logging in',
+            message: 'Error logging in',
             error: err.message,
             code: 500
         });

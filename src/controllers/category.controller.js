@@ -10,13 +10,13 @@ const categoryAdd = (req, res) => {
     category.save()
     .then(category => {
         res.status(200).json({
-            msg: "Category added successfully",
+            message: "Category added successfully",
             data: category
         });
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Category not added",
+            message: "Category not added",
             error
         });
     });
@@ -32,7 +32,7 @@ const getAllCategories = (req, res) => {
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error retrieving categories",
+            message: "Error retrieving categories",
             error
         });
     });
@@ -48,13 +48,13 @@ const getCategoryById = (req, res) => {
             });
         } else {
             res.status(404).json({
-                msg: "Category not found"
+                message: "Category not found"
             });
         }
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error retrieving category",
+            message: "Error retrieving category",
             error
         });
     });
@@ -65,13 +65,13 @@ const updateCategory = (req, res) => {
     Category.findByIdAndUpdate(req.params.id, req.body, { new: true })
     .then(category => {
         res.status(200).json({
-            msg: "Category updated successfully",
+            message: "Category updated successfully",
             data: category
         });
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error updating category",
+            message: "Error updating category",
             error
         });
     });
@@ -83,17 +83,17 @@ const deleteCategory = (req, res) => {
     .then(result => {
         if (result) {
             res.status(200).json({
-                msg: "Category deleted successfully"
+                message: "Category deleted successfully"
             });
         } else {
             res.status(404).json({
-                msg: "Category not found"
+                message: "Category not found"
             });
         }
     })
     .catch(error => {
         res.status(400).json({
-            msg: "Error deleting category",
+            message: "Error deleting category",
             error
         });
     });
