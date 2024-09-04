@@ -6,7 +6,7 @@ import verifyToken from '../middleware/auth.middleware.js';
 const userRoute = express.Router();
 const { userAdd, getAllUsers, getUserById, updateUser, deleteUser, loginUser } = userController;
 
-userRoute.post('/api/login', loginUser);
+userRoute.post('/api/authorization/login', loginUser);
 userRoute.post('/api/add-user', userAdd);
 userRoute.get('/api/users', verifyToken, getAllUsers);
 userRoute.get('/api/users/:id', verifyToken, getUserById);

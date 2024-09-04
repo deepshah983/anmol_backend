@@ -1,5 +1,6 @@
 import Client from '../models/client.model.js';
 import fs from 'fs';
+import path from 'path';
 
 // Add a new client with profile image upload
 const clientAdd = async (req, res) => {
@@ -8,29 +9,28 @@ const clientAdd = async (req, res) => {
         const existingClient = await Client.findOne({ email: req.body.email });
         if (existingClient) {
             return res.status(400).json({
-                msg: "A client with this email already exists"
+                message: "A client with this email already exists"
             });
         }
         
         const client = new Client({
-            first_name: req.body.first_name,
-            last_name: req.body.last_name,
+            name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
-            status: req.body.status,
-            categoryId: req.body.categoryId,
-            profileImage: req.file ? req.file.path : ''
+           // status: req?.body?.status,
+            //categoryId: req.body.categoryId,
+          //  profileImage: req.file ? req.file.path: ''
         });
 
         const savedClient = await client.save();
         res.status(201).json({
-            msg: "Client added successfully",
+            message: "Client added successfully",
             data: savedClient
         });
     } catch (error) {
         console.error('Error in clientAdd:', error);
         res.status(400).json({
-            msg: "Client not added",
+            message: "Client not added",
             error: error.message
         });
     }
@@ -39,14 +39,15 @@ const clientAdd = async (req, res) => {
 // Get all clients
 const getAllClients = async (req, res) => {
     try {
-        const clients = await Client.find().populate('categoryId');
+        //const clients = await Client.find().populate('categoryId');
+        const clients = await Client.find();
         res.status(200).json({
             data: clients
         });
     } catch (error) {
         console.error('Error in getAllClients:', error);
         res.status(400).json({
-            msg: "Error retrieving clients",
+            message: "Error retrieving clients",
             error: error.message
         });
     }
@@ -62,13 +63,13 @@ const getClientById = async (req, res) => {
             });
         } else {
             res.status(404).json({
-                msg: "Client not found"
+                message: "Client not found"
             });
         }
     } catch (error) {
         console.error('Error in getClientById:', error);
         res.status(400).json({
-            msg: "Error retrieving client",
+            message: "Error retrieving client",
             error: error.message
         });
     }
@@ -95,30 +96,29 @@ const updateClient = async (req, res) => {
         
         if (updatedClient) {
             res.status(200).json({
-                msg: "Client updated successfully",
+                message: "Client updated successfully",
                 data: updatedClient
             });
         } else {
             res.status(404).json({
-                msg: "Client not found"
+                message: "Client not found"
             });
         }
     } catch (error) {
         console.error('Error in updateClient:', error);
         res.status(400).json({
-            msg: "Error updating client",
+            message: "Error updating client",
             error: error.message
         });
     }
 };
-
 // Delete a client
 const deleteClient = async (req, res) => {
     try {
         const client = await Client.findById(req.params.id);
         if (!client) {
             return res.status(404).json({
-                msg: "Client not found"
+                message: "Client not found"
             });
         }
 
@@ -131,17 +131,16 @@ const deleteClient = async (req, res) => {
 
         await Client.findByIdAndDelete(req.params.id);
         res.status(200).json({
-            msg: "Client deleted successfully"
+            message: "Client deleted successfully"
         });
     } catch (error) {
         console.error('Error in deleteClient:', error);
         res.status(400).json({
-            msg: "Error deleting client",
+            message: "Error deleting client",
             error: error.message
         });
     }
 };
-
 export default {
     clientAdd,
     getAllClients,
