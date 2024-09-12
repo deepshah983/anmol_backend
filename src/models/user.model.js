@@ -5,13 +5,13 @@ const userSchema = new mongoose.Schema({
     first_name: {
         type: String,
         required: true,
-        minlength: 4,
+        minlength: 3,
         maxlength: 15
     },
     last_name: {
         type: String,
         required: true,
-        minlength: 4,
+        minlength: 2,
         maxlength: 15
     },
     email: {

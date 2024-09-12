@@ -1,13 +1,7 @@
 import { mongoose } from '../db/connection.js'; // Import mongoose from connection.js
 
 const clientSchema = new mongoose.Schema({
-    first_name: {
-        type: String,
-        required: true,
-        minlength: 4,
-        maxlength: 15
-    },
-    last_name: {
+    name: {
         type: String,
         required: true,
         minlength: 4,

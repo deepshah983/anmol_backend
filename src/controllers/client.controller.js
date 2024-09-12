@@ -14,8 +14,7 @@ const clientAdd = async (req, res) => {
         }
         
         const client = new Client({
-            first_name: req.body.first_name,
-            last_name: req.body.last_name,
+            name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
             status: req.body.status,
