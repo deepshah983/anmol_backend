@@ -2,40 +2,52 @@ import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
 // Add a new user
-const userAdd = (req, res) => {
-  User.findOne({ email: req.body.email })
-    .then((existingUser) => {
-      if (existingUser) {
+const userAdd = async (req, res) => {
+  try {
+    const { email, role } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        error: true,
+        message: "Email is already added.",
+        details: "A user with this email already exists.",
+      });
+    }
+
+    // Check if an admin already exists
+    if (role === 'admin') {
+      const adminExists = await User.findOne({ role: 'admin' });
+      if (adminExists) {
         return res.status(400).json({
           error: true,
-          message: "Email is already added.",
-          details: "A user with this email already exists.",
+          message: "Admin already exists.",
+          details: "Only one admin is allowed.",
         });
       }
+    }
 
-      const user = new User({
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
-        email: req.body.email,
-        phone: req.body.phone,
-        password: req.body.password,
-        role: req.body.role,
-      });
-
-      return user.save();
-    })
-    .then((user) => {
-      res.status(200).json({
-        msg: "User added successfully",
-        data: user,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        msg: "User not added",
-        error,
-      });
+    const user = new User({
+      first_name: req.body.first_name,
+      last_name: req.body.last_name,
+      email: req.body.email,
+      phone: req.body.phone,
+      password: req.body.password,
+      role: req.body.role,
     });
+
+    const savedUser = await user.save();
+    res.status(200).json({
+      msg: "User added successfully",
+      data: savedUser,
+    });
+  } catch (error) {
+    res.status(400).json({
+      msg: "User not added",
+      error,
+    });
+  }
 };
 
 // Get all users
