@@ -2,42 +2,52 @@ import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
 // Add a new user
-const userAdd = (req, res) => {
- 
-  
-  User.findOne({ email: req.body.email })
-    .then((existingUser) => {
-      if (existingUser) {
+const userAdd = async (req, res) => {
+  try {
+    const { email, role } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        error: true,
+        message: "Email is already added.",
+        details: "A user with this email already exists.",
+      });
+    }
+
+    // Check if an admin already exists
+    if (role === 'admin') {
+      const adminExists = await User.findOne({ role: 'admin' });
+      if (adminExists) {
         return res.status(400).json({
           error: true,
-          message: "Email is already added.",
-          details: "A user with this email already exists.",
+          message: "Admin already exists.",
+          details: "Only one admin is allowed.",
         });
       }
-     console.log(req.body);
-     
-      const user = new User({
-        userName: req.body.userName,
-        email: req.body.email,
-        phone: req.body.phone,
-       // password: req.body.password,
-       // role: req.body.role,
-      });
+    }
 
-      return user.save();
-    })
-    .then((user) => {
-      res.status(200).json({
-        message: "User added successfully",
-        data: user,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        message: "User not added",
-        error,
-      });
+    const user = new User({
+      first_name: req.body.first_name,
+      last_name: req.body.last_name,
+      email: req.body.email,
+      phone: req.body.phone,
+      password: req.body.password,
+      role: req.body.role,
     });
+
+    const savedUser = await user.save();
+    res.status(200).json({
+      msg: "User added successfully",
+      data: savedUser,
+    });
+  } catch (error) {
+    res.status(400).json({
+      msg: "User not added",
+      error,
+    });
+  }
 };
 
 // Get all users
@@ -143,9 +153,12 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    // Generate JWT tokens
+    const accessToken = jwt.sign({ id: user._id, role: user.role, email: user.email }, process.env.JWT_SECRET, {
       expiresIn: "1h",
+    });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role, email: user.email }, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: "7d",
     });
 
     // Send success response
@@ -153,6 +166,7 @@ const loginUser = async (req, res) => {
       success: true,
       message: "Login successful",
       accessToken,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -169,6 +183,43 @@ const loginUser = async (req, res) => {
   }
 };
 
+const refreshToken = async (req, res) => {
+  const parseJwt = (token) => {
+      var base64Url = token.split('.')[1];
+      var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      var jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+
+      return JSON.parse(jsonPayload);
+  };
+
+  const oldrefreshToken = req.body.refreshToken
+
+  jwt.verify(oldrefreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+      if (err) {
+          return res.status(200).send({ error: true, message: "Authorization failed!" })
+      }
+      const authHeader = req.headers['authorization']
+      const token = authHeader && authHeader.split(' ')[1]
+      const payload = parseJwt(token)
+      const data = {
+          id: payload.id,
+          role: payload.role,
+          email: payload.email
+      }
+      const accessToken = jwt.sign(data, process.env.JWT_SECRET, { expiresIn: '2h' })
+      const refreshToken = jwt.sign(data, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' })
+      res.status(200).json({
+          error: false,
+          message: "Token Renewed.",
+          accessToken,
+          refreshToken
+      })
+  })
+}
+
+
 export default {
   userAdd,
   getAllUsers,
@@ -176,4 +227,5 @@ export default {
   updateUser,
   deleteUser,
   loginUser,
+  refreshToken
 };

@@ -1,12 +1,11 @@
 import { mongoose } from '../db/connection.js'; // Import mongoose from connection.js
 
 const clientSchema = new mongoose.Schema({
-    
     name: {
         type: String,
         required: true,
         minlength: 4,
-        maxlength: 25
+        maxlength: 15
     },
     email: {
         type: String,
