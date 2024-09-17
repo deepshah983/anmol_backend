@@ -19,22 +19,22 @@ const clientSchema = new mongoose.Schema({
         minlength: 10,
         maxlength: 15,
         match: [/^\d+$/, 'Phone number must contain only digits']
+    },
+    status: {
+        type: Number,
+        required: true,
+        enum: [0, 1],  // 0 for Inactive, 1 for Active
+        default: 1     // Default to Active
+    },
+    categoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        required: false
+    },
+    profileImage: {
+        type: String,  // You can also use Buffer if you want to store the image binary data directly
+        default: ''    // Default to an empty string if no image is provided
     }
-    // status: {
-    //     type: Number,
-    //     required: true,
-    //     enum: [0, 1],  // 0 for Inactive, 1 for Active
-    //     default: 1     // Default to Active
-    // },
-    // categoryId: {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: 'Category',
-    //     required: true
-    // },
-    // profileImage: {
-    //     type: String,  // You can also use Buffer if you want to store the image binary data directly
-    //     default: ''    // Default to an empty string if no image is provided
-    // }
 }, {
     timestamps: true
 });
