@@ -3,7 +3,7 @@ import strategyController from '../controllers/strategy.controller.js';
 import verifyToken from '../middleware/auth.middleware.js';
 
 const strategyRoute = express.Router();
-const { strategyAdd, getAllStrategies, getStrategyById, updateStrategy, deleteStrategy } = strategyController;
+const { strategyAdd, getAllStrategies, getStrategyById, updateStrategy, deleteStrategy, createStrategy } = strategyController;
 
 strategyRoute.post('/api/add-strategy', verifyToken, strategyAdd);
 strategyRoute.get('/api/strategies', verifyToken, getAllStrategies);

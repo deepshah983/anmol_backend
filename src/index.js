@@ -6,7 +6,6 @@ import clientRoute from './routes/client.routes.js';
 import userRoute from './routes/user.routes.js';
 import categoryRoute from './routes/category.routes.js';
 import strategyRoute from './routes/strategy.routes.js';
-import authRoute from './routes/auth.routes.js';
 import cors from 'cors';
 
 
@@ -37,7 +36,6 @@ app.use(userRoute);
 app.use(clientRoute);
 app.use(categoryRoute);
 app.use(strategyRoute);
-app.use(authRoute);
 app.use('/uploads', express.static('uploads'));
 // Apply CORS middleware
 app.use((req, res, next) => {
