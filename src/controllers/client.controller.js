@@ -17,9 +17,9 @@ const clientAdd = async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
-           // status: req?.body?.status,
-            //categoryId: req.body.categoryId,
-          //  profileImage: req.file ? req.file.path: ''
+           status: req?.body?.status,
+            categoryId: req.body.categoryId,
+           profileImage: req.file ? req.file.path: ''
         });
 
         const savedClient = await client.save();
