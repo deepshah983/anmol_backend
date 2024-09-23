@@ -12,48 +12,40 @@ const strategyAdd = async (req, res) => {
         quantityMultiplier: req.body.quantityMultiplier || 1
     });
 
-    strategy.save()
-    .then(strategy => {
+        const savedStrategy = await strategy.save();
         res.status(201).json({
             message: "Strategy added successfully",
-            data: strategy
+            data: savedStrategy
         });
-    })
-    .catch(error => {
+    } catch (error) {
+        console.error('Error in strategyAdd:', error);
         res.status(400).json({
             message: "Strategy not added",
-            error
+            error: error.message
         });
-    });
-} catch (error) {
-    console.error('Error in stratagyAdd:', error);
-    res.status(400).json({
-        message: "Stratagy not added",
-        error: error.message
-    });
-}
+    }
 };
 
 // Get all strategies
-const getAllStrategies = (req, res) => {
-    Strategy.find()
-    .then(strategies => {
+const getAllStrategies = async (req, res) => {
+    try {
+        const strategies = await Strategy.find();
         res.status(200).json({
             data: strategies
         });
-    })
-    .catch(error => {
+    } catch (error) {
+        console.error('Error in getAllStrategies:', error);
         res.status(400).json({
             message: "Error retrieving strategies",
-            error
+            error: error.message
         });
-    });
+    }
 };
 
 // Get a single strategy by ID
-const getStrategyById = (req, res) => {
-    Strategy.findById(req.params.id)
-    .then(strategy => {
+const getStrategyById = async (req, res) => {
+    try {
+        const strategy = await Strategy.findById(req.params.id);
         if (strategy) {
             res.status(200).json({
                 data: strategy
@@ -63,46 +55,42 @@ const getStrategyById = (req, res) => {
                 message: "Strategy not found"
             });
         }
-    })
-    .catch(error => {
+    } catch (error) {
+        console.error('Error in getStrategyById:', error);
         res.status(400).json({
             message: "Error retrieving strategy",
-            error
+            error: error.message
         });
-    });
+    }
 };
 
 // Update a strategy
-const updateStrategy = (req, res) => {
+const updateStrategy = async (req, res) => {
     try {
-        console.log(req.body);
-        
-    Strategy.findByIdAndUpdate(req.params.id, req.body, { new: true })
-    .then(strategy => {
-        res.status(200).json({
-            message: "Strategy updated successfully",
-            data: strategy
-        });
-    })
-    .catch(error => {
+        const updatedStrategy = await Strategy.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (updatedStrategy) {
+            res.status(200).json({
+                message: "Strategy updated successfully",
+                data: updatedStrategy
+            });
+        } else {
+            res.status(404).json({
+                message: "Strategy not found"
+            });
+        }
+    } catch (error) {
+        console.error('Error in updateStrategy:', error);
         res.status(400).json({
-            message: "Error updating strategy",
-            error
+            message: "Strategy not updated",
+            error: error.message
         });
-    });
-} catch (error) {
-    console.error('Error in stratagyUpdate:', error);
-    res.status(400).json({
-        message: "Stratagy not updated",
-        error: error.message
-    });
-}
+    }
 };
 
 // Delete a strategy
-const deleteStrategy = (req, res) => {
-    Strategy.findByIdAndDelete(req.params.id)
-    .then(result => {
+const deleteStrategy = async (req, res) => {
+    try {
+        const result = await Strategy.findByIdAndDelete(req.params.id);
         if (result) {
             res.status(200).json({
                 message: "Strategy deleted successfully"
@@ -112,29 +100,19 @@ const deleteStrategy = (req, res) => {
                 message: "Strategy not found"
             });
         }
-    })
-    .catch(error => {
+    } catch (error) {
+        console.error('Error in deleteStrategy:', error);
         res.status(400).json({
             message: "Error deleting strategy",
-            error
-        });
-    });
-};
-
-const createStrategy = async (req, res) => {
-    try {
-    console.log(req.body);
-    res.status(400).json({
-        message: "Client added",
-       
-    });
-    } catch (error) {
-        console.error('Error in clientAdd:', error);
-        res.status(400).json({
-            message: "Client not added",
             error: error.message
         });
     }
 };
 
-export default { strategyAdd, getAllStrategies, getStrategyById, updateStrategy, deleteStrategy, createStrategy };
+export default {
+    strategyAdd,
+    getAllStrategies,
+    getStrategyById,
+    updateStrategy,
+    deleteStrategy
+};

@@ -152,6 +152,8 @@ const updateAssignStrategy = async (req, res) => {
     try {
         let updateData = req.body;
 
+        console.log(updateData);
+        
         const updatedClient = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
         
         if (updatedClient) {
