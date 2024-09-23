@@ -14,11 +14,16 @@ const clientSchema = new mongoose.Schema({
         match: [/.+@.+\..+/, 'Please enter a valid email address']
     },
     phone: {
-        type: String,
+        type: Number,
         required: true,
         minlength: 10,
         maxlength: 15,
         match: [/^\d+$/, 'Phone number must contain only digits']
+    },
+    entryBalance: {
+        type: Number,
+        required: true,
+        match: [/^\d+$/, 'Entry Balance must contain only digits']
     },
     status: {
         type: Number,
@@ -34,7 +39,11 @@ const clientSchema = new mongoose.Schema({
     profileImage: {
         type: String,  // You can also use Buffer if you want to store the image binary data directly
         default: ''    // Default to an empty string if no image is provided
-    }
+    },
+    assignedstrategy: {
+        type: String,
+        required: false,
+    },
 }, {
     timestamps: true
 });
