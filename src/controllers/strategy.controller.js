@@ -3,16 +3,14 @@ import Strategy from '../models/strategy.model.js';
 // Add a new strategy
 const strategyAdd = async (req, res) => {
     try {
-        const strategy = new Strategy({
-            name: req.body.name || '',
-            maxOpenPos: req.body.maxOpenPos || 0,
-            maxLongPos: req.body.maxLongPos || 0,
-            maxShortPos: req.body.maxShortPos || 0,
-            tradesPerDay: req.body.tradesPerDay || 0,
-            ordersPerDay: req.body.ordersPerDay || 0,
-            tradesPerScrip: req.body.tradesPerScrip || 0,
-            quantityMultiplier: req.body.quantityMultiplier || 1
-        });
+    
+    const strategy = new Strategy({
+        name: req.body.name || '', // Default to an empty string if name is not provided
+        entryTime: req.body.entryTime || 0,
+        exitTime: req.body.exitTime || 0,
+        squareOffTime: req.body.squareOffTime || 0,
+        quantityMultiplier: req.body.quantityMultiplier || 1
+    });
 
         const savedStrategy = await strategy.save();
         res.status(201).json({

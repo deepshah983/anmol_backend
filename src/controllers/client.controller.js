@@ -1,4 +1,5 @@
 import Client from '../models/client.model.js';
+import Strategy from '../models/strategy.model.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,9 +18,11 @@ const clientAdd = async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
-           status: req?.body?.status,
+            status: req?.body?.status,
+            entryBalance: req?.body?.entryBalance,
             categoryId: req.body.categoryId,
-           profileImage: req.file ? req.file.path: ''
+           profileImage: req.file ? req.file.path: '',
+           assignedstrategy: ''
         });
 
         const savedClient = await client.save();
@@ -41,8 +44,9 @@ const getAllClients = async (req, res) => {
     try {
         //const clients = await Client.find().populate('categoryId');
         const clients = await Client.find();
+        const strategies = await Strategy.find();
         res.status(200).json({
-            data: clients
+            data: {clients, strategies}
         });
     } catch (error) {
         console.error('Error in getAllClients:', error);
@@ -112,6 +116,7 @@ const updateClient = async (req, res) => {
         });
     }
 };
+
 // Delete a client
 const deleteClient = async (req, res) => {
     try {
@@ -141,10 +146,40 @@ const deleteClient = async (req, res) => {
         });
     }
 };
+
+// Update a client
+const updateAssignStrategy = async (req, res) => {
+    try {
+        let updateData = req.body;
+
+        console.log(updateData);
+        
+        const updatedClient = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        
+        if (updatedClient) {
+            res.status(200).json({
+                message: "Assign strategy successfully",
+                data: updatedClient
+            });
+        } else {
+            res.status(404).json({
+                message: "not found"
+            });
+        }
+    } catch (error) {
+        console.error('Error in Assign Strategy:', error);
+        res.status(400).json({
+            message: "Error Assign Strategy",
+            error: error.message
+        });
+    }
+};
+
 export default {
     clientAdd,
     getAllClients,
     getClientById,
     updateClient,
-    deleteClient
+    deleteClient,
+    updateAssignStrategy
 };

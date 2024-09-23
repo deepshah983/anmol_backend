@@ -7,33 +7,18 @@ const strategySchema = new mongoose.Schema({
         minlength: 3,
         maxlength: 100
     },
-    maxOpenPos: {
-        type: Number,
+    entryTime: {
+        type: String,
         required: true,
         min: 0
     },
-    maxLongPos: {
-        type: Number,
+    exitTime: {
+        type: String,
         required: true,
         min: 0
     },
-    maxShortPos: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    tradesPerDay: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    ordersPerDay: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    tradesPerScrip: {
-        type: Number,
+    squareOffTime: {
+        type: String,
         required: true,
         min: 0
     },
