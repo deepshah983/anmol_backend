@@ -8,14 +8,15 @@ import multer from 'multer';
 const uploadNone = multer();
 const router = express.Router();
 
-const { clientAdd, getAllClients, getClientById, updateClient, deleteClient, updateAssignStrategy } = clientController;
+const { clientAdd, getAllClients, getClientById, updateClient, deleteClient, updateAssignStrategy, addTreadSetting } = clientController;
 
 
 router.post('/api/clients',verifyToken, upload.single('profileImage'), clientAdd);
 router.get('/api/clients',verifyToken, getAllClients);
 router.get('/api/clients/:id',verifyToken, getClientById);
-router.put('/api/clients/:id',verifyToken, upload.single('profileImage'), updateAssignStrategy);
-router.put('/api/client/assignStrategy/:id',verifyToken, uploadNone.none(), updateAssignStrategy);
+router.put('/api/clients/:id',verifyToken, upload.single('profileImage'), updateClient);
+router.post('/api/clients/tread-setting/:id',verifyToken, uploadNone.none(), addTreadSetting);
+router.post('/api/client/assignStrategy',verifyToken, uploadNone.none(), updateAssignStrategy);
 router.delete('/api/clients/:id',verifyToken, deleteClient);
 
 export default router;

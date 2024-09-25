@@ -1,5 +1,7 @@
 import Client from '../models/client.model.js';
 import Strategy from '../models/strategy.model.js';
+import UserStrategy from '../models/userStrategy.model.js';
+import TreadSetting from '../models/treadSetting.model.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -21,8 +23,7 @@ const clientAdd = async (req, res) => {
             status: req?.body?.status,
             entryBalance: req?.body?.entryBalance,
             categoryId: req.body.categoryId,
-           profileImage: req.file ? req.file.path: '',
-           assignedstrategy: ''
+            profileImage: req.file ? req.file.path: ''
         });
 
         const savedClient = await client.save();
@@ -45,8 +46,10 @@ const getAllClients = async (req, res) => {
         //const clients = await Client.find().populate('categoryId');
         const clients = await Client.find();
         const strategies = await Strategy.find();
+        const userStrategy = await UserStrategy.find();
+        let treadSetting = await TreadSetting.find();
         res.status(200).json({
-            data: {clients, strategies}
+            data: {clients, strategies, userStrategy, treadSetting}
         });
     } catch (error) {
         console.error('Error in getAllClients:', error);
@@ -83,18 +86,6 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
     try {
         let updateData = req.body;
-
-        if (req.file) {
-            updateData.profileImage = req.file.path;
-            
-            // Delete old image if exists
-            const oldClient = await Client.findById(req.params.id);
-            if (oldClient.profileImage) {
-                fs.unlink(oldClient.profileImage, (err) => {
-                    if (err) console.error('Error deleting old image:', err);
-                });
-            }
-        }
 
         const updatedClient = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
         
@@ -150,22 +141,41 @@ const deleteClient = async (req, res) => {
 // Update a client
 const updateAssignStrategy = async (req, res) => {
     try {
-        let updateData = req.body;
+        const { tags, parent_id } = req.body;
 
-        console.log(updateData);
-        
-        const updatedClient = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
-        
-        if (updatedClient) {
-            res.status(200).json({
-                message: "Assign strategy successfully",
-                data: updatedClient
-            });
-        } else {
-            res.status(404).json({
-                message: "not found"
+        if (!parent_id || !Array.isArray(tags)) {
+            return res.status(400).json({
+                message: "Invalid input. Parent ID and tags array are required."
             });
         }
+
+        // Find the existing strategy or create a new one
+        let strategy = await UserStrategy.findOne({ parent_id });
+
+        if (!strategy) {
+            strategy = new UserStrategy({
+                parent_id,
+                label: 'Main Strategy', // You might want to adjust this
+                strategy_id: parent_id, // Using parent_id as assign_id for the main strategy
+                assigned_stratagies: []
+            });
+        }
+
+        // Update assignedStrategies
+        strategy.assigned_stratagies = tags.map(tag => ({
+            strategy_id: tag.strategy_id,
+            label: tag.label,
+            value: tag.value,
+            parent_id: tag.parent_id
+        }));
+
+        // Save the updated or new strategy
+        await strategy.save();
+
+        res.status(200).json({
+            message: "Assign strategy updated successfully",
+            data: strategy
+        });
     } catch (error) {
         console.error('Error in Assign Strategy:', error);
         res.status(400).json({
@@ -175,11 +185,46 @@ const updateAssignStrategy = async (req, res) => {
     }
 };
 
+// Update a tread setting
+const addTreadSetting = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+
+        let treadSetting = await TreadSetting.findById(id);
+
+        if (!treadSetting) {
+            // If not found, create a new document
+            treadSetting = new TreadSetting({ _id: id, ...updateData });
+            await treadSetting.save();
+            res.status(201).json({
+                message: "Tread Setting added successfully",
+                data: treadSetting
+            });
+        } else {
+            // If found, update the existing document
+            treadSetting = await TreadSetting.findByIdAndUpdate(id, updateData, { new: true });
+            res.status(200).json({
+                message: "Tread Setting updated successfully",
+                data: treadSetting
+            });
+        }
+    } catch (error) {
+        console.error('Error in Tread Setting operation:', error);
+        res.status(400).json({
+            message: "Error in Tread Setting operation",
+            error: error.message
+        });
+    }
+};
+// end Update a tread setting
+
 export default {
     clientAdd,
     getAllClients,
     getClientById,
     updateClient,
     deleteClient,
-    updateAssignStrategy
+    updateAssignStrategy,
+    addTreadSetting
 };

@@ -40,10 +40,6 @@ const clientSchema = new mongoose.Schema({
         type: String,  // You can also use Buffer if you want to store the image binary data directly
         default: ''    // Default to an empty string if no image is provided
     },
-    assignedstrategy: {
-        type: String,
-        required: false,
-    },
 }, {
     timestamps: true
 });
