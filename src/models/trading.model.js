@@ -50,18 +50,6 @@ const tradingFormSchema = new mongoose.Schema({
       return this.entryOrder === 'SLL';
     }
   },
-  target: {
-    type: Number,
-    required: function() {
-      return this.entryOrder === 'SLL';
-    }
-  },
-  stopLoss: {
-    type: Number,
-    required: function() {
-      return this.entryOrder === 'SLL';
-    }
-  },
   priceBufferType: {
     type: String,
     required: function() {

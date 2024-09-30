@@ -1,5 +1,6 @@
 import Strategy from '../models/strategy.model.js';
-
+import UserStrategy from '../models/userStrategy.model.js';
+import  mongoose from 'mongoose';
 // Add a new strategy
 const strategyAdd = async (req, res) => {
     try {
@@ -90,10 +91,23 @@ const updateStrategy = async (req, res) => {
 // Delete a strategy
 const deleteStrategy = async (req, res) => {
     try {
+        // Find and delete the strategy by ID from the Strategy collection
         const result = await Strategy.findByIdAndDelete(req.params.id);
+
         if (result) {
+            // Remove the deleted strategy from assigned_stratagies in UserStrategy collection
+            await UserStrategy.updateMany(
+                { "assigned_stratagies.strategy_id": req.params.id },
+                { $pull: { assigned_stratagies: { strategy_id: req.params.id } } }
+            );
+
+            // After removing the strategy, delete UserStrategy documents where assigned_stratagies array is empty
+            await UserStrategy.deleteMany({
+                assigned_stratagies: { $size: 0 }
+            });
+
             res.status(200).json({
-                message: "Strategy deleted successfully"
+                message: "Strategy deleted successfully and removed from assigned_stratagies"
             });
         } else {
             res.status(404).json({
@@ -109,10 +123,76 @@ const deleteStrategy = async (req, res) => {
     }
 };
 
+
+
+const deleteSelectedStrategy = async (req, res) => {
+    try {
+        // Convert the comma-separated string of ids into an array
+        // Convert the comma-separated string of ids into an array of ObjectIds
+        let idsObj = req.params.id;
+        const idsArray = idsObj.split(',').map(id => new mongoose.Types.ObjectId(id));
+        const idsArrayAsStrings = idsArray.map(id => id.toString());
+
+        // Log the IDs for debugging
+        console.log('IDs to delete:', idsArrayAsStrings);
+         
+        //Delete the strategies from the Strategy collection
+        const result = await Strategy.deleteMany({
+            _id: { $in: idsArray }
+        });
+
+        if (result) {
+               // Log the matched documents before the update
+        const matchedDocuments = await UserStrategy.find({
+            "assigned_stratagies.strategy_id": { $in: idsArrayAsStrings }
+        });
+        console.log('Matched Documents Before Update:', matchedDocuments);
+
+        // Remove the corresponding strategies from assigned_stratagies in UserStrategy collection
+        const updateResult = await UserStrategy.updateMany(
+            { "assigned_stratagies.strategy_id": { $in: idsArrayAsStrings } },
+            { $pull: { assigned_stratagies: { strategy_id: { $in: idsArrayAsStrings } } } },
+            { multi: true }
+        );
+
+        // Log the result of the update for debugging
+        console.log('Update Result:', updateResult);
+
+        // After pulling strategies, delete UserStrategy documents where assigned_stratagies array is empty
+        const deleteResult = await UserStrategy.deleteMany({
+            assigned_stratagies: { $size: 0 }
+        });
+
+        // Log the result of the delete operation
+        console.log('Delete Result:', deleteResult);
+
+        res.status(200).json({
+            message: "Selected Strategies deleted successfully",
+            updateResult,
+            deleteResult
+        });
+
+    } else {
+        res.status(404).json({
+            message: "Strategy not found"
+        });
+    }
+    } catch (error) {
+        console.error('Error in deleteSelectedStrategy:', error);
+        res.status(500).json({
+            message: "Error deleting Selected Strategy",
+            error: error.message
+        });
+    }
+};
+
+
+
 export default {
     strategyAdd,
     getAllStrategies,
     getStrategyById,
     updateStrategy,
-    deleteStrategy
+    deleteStrategy,
+    deleteSelectedStrategy
 };
