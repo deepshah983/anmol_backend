@@ -7,12 +7,13 @@ import multer from 'multer';
 const upload = multer();
 
 const strategyRoute = express.Router();
-const { strategyAdd, getAllStrategies, getStrategyById, updateStrategy, deleteStrategy } = strategyController;
+const { strategyAdd, getAllStrategies, getStrategyById, updateStrategy, deleteStrategy, deleteSelectedStrategy } = strategyController;
 
 strategyRoute.post('/api/strategy', verifyToken, upload.none(), strategyAdd);
 strategyRoute.get('/api/strategies', verifyToken, getAllStrategies);
 strategyRoute.get('/api/strategy/:id', verifyToken, getStrategyById);
 strategyRoute.put('/api/strategy/:id', verifyToken, upload.none(), updateStrategy);
 strategyRoute.delete('/api/strategy/:id', verifyToken, deleteStrategy);
+strategyRoute.delete('/api/strategies/selectedDataErase/:id', verifyToken, deleteSelectedStrategy);
 
 export default strategyRoute;

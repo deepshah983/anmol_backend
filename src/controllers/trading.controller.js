@@ -1,4 +1,5 @@
 import TradingForm from '../models/trading.model.js';
+import  mongoose from 'mongoose';
 
 // Add a new Trading form
 const createTradingForm = async (req, res) => {
@@ -21,8 +22,6 @@ const createTradingForm = async (req, res) => {
         if (req.body.entryOrder === 'SLL') {
             tradingForm.price = req.body.price || undefined;
             tradingForm.triggerPrice = req.body.triggerPrice || undefined;
-            tradingForm.target = req.body.target || undefined;
-            tradingForm.stopLoss = req.body.stopLoss || undefined;
         } else if (req.body.entryOrder === 'market') {
             tradingForm.priceBufferType = req.body.priceBufferType || undefined;
             if (req.body.priceBufferType === 'fixed') {
@@ -105,13 +104,19 @@ const deleteTradingForm = async (req, res) => {
     }
 };
 
-const deleteTradingFormAll = async (req, res) => {
+const deleteSelectedTradingForm = async (req, res) => {
     try {
-        //console.log("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh", req.body);
         
-        let idsObj = req.params.id
-        // Delete all documents
-        const result = await TradingForm.deleteMany({});
+        let idsObj = req.params.id;
+
+        // Convert the string into an array of ObjectId
+        const idsArray = idsObj.split(',').map(id => new mongoose.Types.ObjectId(id));
+        console.log(idsArray);
+
+        // Delete documents with the matching IDs
+        const result = await TradingForm.deleteMany({
+        _id: { $in: idsArray }
+        });
         
         res.status(200).json({
             message: "All Trading data deleted successfully",
@@ -131,5 +136,5 @@ export default {
     getAllTradingForm,
     updateTradingForm,
     deleteTradingForm,
-    deleteTradingFormAll
+    deleteSelectedTradingForm
 };
