@@ -3,11 +3,46 @@ import Strategy from '../models/strategy.model.js';
 import UserStrategy from '../models/userStrategy.model.js';
 import TreadSetting from '../models/treadSetting.model.js';
 import fs from 'fs';
-import path from 'path';
+import Joi from 'joi';
+
+// Validation schemas
+const clientSchema = Joi.object({
+    name: Joi.string().min(4).max(100).required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\d+$/).min(10).max(15).required(),
+    entryBalance: Joi.number().required(),
+    status: Joi.number().valid(0, 1).default(1),
+    categoryId: Joi.string().optional(),
+    profileImage: Joi.string().optional(),
+});
+
+const strategySchema = Joi.object({
+    tags: Joi.array().items(
+        Joi.object({
+            strategy_id: Joi.string().required(),
+            label: Joi.string().required(),
+            value: Joi.string().required(),
+            parent_id: Joi.string().required()
+        })
+    ).required(),
+    parent_id: Joi.string().required(),
+});
+
+const treadSettingSchema = Joi.object({
+    userId: Joi.string().required(),
+    pin: Joi.string().required(),
+    userKey: Joi.string().required(),
+    appKey: Joi.string().required(),
+    parent_id: Joi.string().required(),
+});
 
 // Add a new client with profile image upload
 const clientAdd = async (req, res) => {
     try {
+        // Validate input data
+        const { error } = clientSchema.validate(req.body);
+        if (error) return res.status(400).json({ message: error.details[0].message });
+
         // Check if a client with the same email already exists
         const existingClient = await Client.findOne({ email: req.body.email });
         if (existingClient) {
@@ -40,16 +75,38 @@ const clientAdd = async (req, res) => {
     }
 };
 
-// Get all clients
+// Get all clients with pagination
 const getAllClients = async (req, res) => {
     try {
-        //const clients = await Client.find().populate('categoryId');
-        const clients = await Client.find();
+        // Get page and limit from query parameters, default to page 1 and limit 10
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get the total number of clients for calculating total pages
+        const totalClients = await Client.countDocuments();
+
+        // Fetch clients with pagination
+        const clients = await Client.find()
+            .skip(skip)
+            .limit(limit);
+
+        // Fetch other data as needed
         const strategies = await Strategy.find();
         const userStrategy = await UserStrategy.find();
         let treadSetting = await TreadSetting.find();
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalClients / limit);
+
         res.status(200).json({
-            data: {clients, strategies, userStrategy, treadSetting}
+            data: { clients, strategies, userStrategy, treadSetting },
+            pagination: {
+                totalClients,
+                totalPages,
+                currentPage: page,
+                limit
+            }
         });
     } catch (error) {
         console.error('Error in getAllClients:', error);
@@ -59,6 +116,7 @@ const getAllClients = async (req, res) => {
         });
     }
 };
+
 
 // Get a single client by ID
 const getClientById = async (req, res) => {
@@ -85,9 +143,13 @@ const getClientById = async (req, res) => {
 // Update a client
 const updateClient = async (req, res) => {
     try {
-        let updateData = req.body;
+        const { id, ...bodyWithoutId } = req.body;
 
-        const updatedClient = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        // Validate the rest of the input data (excluding "id")
+        const { error } = clientSchema.validate(bodyWithoutId);
+        if (error) return res.status(400).json({ message: error.details[0].message });
+
+        const updatedClient = await Client.findByIdAndUpdate(req.params.id, bodyWithoutId, { new: true });
         
         if (updatedClient) {
             res.status(200).json({
@@ -138,30 +200,25 @@ const deleteClient = async (req, res) => {
     }
 };
 
-// Update a client
+// Update a client's strategy assignment
 const updateAssignStrategy = async (req, res) => {
     try {
+        const { error } = strategySchema.validate(req.body);
+        if (error) return res.status(400).json({ message: error.details[0].message });
+
         const { tags, parent_id } = req.body;
 
-        if (!parent_id || !Array.isArray(tags)) {
-            return res.status(400).json({
-                message: "Invalid input. Parent ID and tags array are required."
-            });
-        }
-
-        // Find the existing strategy or create a new one
         let strategy = await UserStrategy.findOne({ parent_id });
 
         if (!strategy) {
             strategy = new UserStrategy({
                 parent_id,
-                label: 'Main Strategy', // You might want to adjust this
-                strategy_id: parent_id, // Using parent_id as assign_id for the main strategy
+                label: 'Main Strategy',
+                strategy_id: parent_id,
                 assigned_stratagies: []
             });
         }
 
-        // Update assignedStrategies
         strategy.assigned_stratagies = tags.map(tag => ({
             strategy_id: tag.strategy_id,
             label: tag.label,
@@ -169,7 +226,6 @@ const updateAssignStrategy = async (req, res) => {
             parent_id: tag.parent_id
         }));
 
-        // Save the updated or new strategy
         await strategy.save();
 
         res.status(200).json({
@@ -185,16 +241,18 @@ const updateAssignStrategy = async (req, res) => {
     }
 };
 
-// Update a tread setting
+// Add or update a tread setting
 const addTreadSetting = async (req, res) => {
     try {
+        const { error } = treadSettingSchema.validate(req.body);
+        if (error) return res.status(400).json({ message: error.details[0].message });
+
         const { id } = req.params;
         const updateData = req.body;
 
         let treadSetting = await TreadSetting.findById(id);
 
         if (!treadSetting) {
-            // If not found, create a new document
             treadSetting = new TreadSetting({ _id: id, ...updateData });
             await treadSetting.save();
             res.status(201).json({
@@ -202,7 +260,6 @@ const addTreadSetting = async (req, res) => {
                 data: treadSetting
             });
         } else {
-            // If found, update the existing document
             treadSetting = await TreadSetting.findByIdAndUpdate(id, updateData, { new: true });
             res.status(200).json({
                 message: "Tread Setting updated successfully",
@@ -217,7 +274,6 @@ const addTreadSetting = async (req, res) => {
         });
     }
 };
-// end Update a tread setting
 
 export default {
     clientAdd,
