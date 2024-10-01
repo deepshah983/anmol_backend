@@ -9,18 +9,15 @@ const strategySchema = new mongoose.Schema({
     },
     entryTime: {
         type: String,
-        required: true,
-        min: 0
+        required: false,
     },
     exitTime: {
         type: String,
-        required: true,
-        min: 0
+        required: false,
     },
     squareOffTime: {
         type: String,
-        required: true,
-        min: 0
+        required: false,
     },
     quantityMultiplier: {
         type: Number,
