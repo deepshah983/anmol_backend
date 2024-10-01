@@ -78,40 +78,50 @@ const clientAdd = async (req, res) => {
 // Get all clients with pagination
 const getAllClients = async (req, res) => {
     try {
-        // Get page and limit from query parameters, default to page 1 and limit 10
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
+        const { page_no = 1, limit = 10, search = '' } = req.query;
+        const skip = (Number(page_no) - 1) * Number(limit);
 
-        // Get the total number of clients for calculating total pages
-        const totalClients = await Client.countDocuments();
+        // Create a search query
+        const searchQuery = search
+            ? { name: { $regex: search, $options: 'i' } }
+            : {};
 
-        // Fetch clients with pagination
-        const clients = await Client.find()
+        // Get total count of clients matching the search criteria
+        const totalClients = await Client.countDocuments(searchQuery);
+
+        // Fetch clients with pagination and search
+        const clients = await Client.find(searchQuery)
             .skip(skip)
-            .limit(limit);
+            .limit(Number(limit));
 
-        // Fetch other data as needed
+        // Get client IDs for fetching related data
+        const clientIds = clients.map(client => client._id);
+
+        // Fetch related data
         const strategies = await Strategy.find();
-        const userStrategy = await UserStrategy.find();
-        let treadSetting = await TreadSetting.find();
+        const userStrategy = await UserStrategy.find({ parent_id: { $in: clientIds } });
+        const treadSetting = await TreadSetting.find({ parent_id: { $in: clientIds } });
 
         // Calculate total pages
-        const totalPages = Math.ceil(totalClients / limit);
+        const totalPages = Math.ceil(totalClients / Number(limit));
 
         res.status(200).json({
-            data: { clients, strategies, userStrategy, treadSetting },
-            pagination: {
+            data: {
+                clients,
+                strategies,
+                userStrategy,
+                treadSetting
+            },
                 totalClients,
                 totalPages,
-                currentPage: page,
-                limit
-            }
+                currentPage: Number(page_no),
+                limit: Number(limit)
+            
         });
     } catch (error) {
         console.error('Error in getAllClients:', error);
         res.status(400).json({
-            message: "Error retrieving clients",
+            message: "Error retrieving clients and related data",
             error: error.message
         });
     }

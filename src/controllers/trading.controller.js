@@ -45,9 +45,28 @@ const createTradingForm = async (req, res) => {
 // Get all Trading data
 const getAllTradingForm = async (req, res) => {
     try {
-        const tradingForm = await TradingForm.find();
+        const { limit = 10, page_no = 1, search = '' } = req.query;
+        const skip = (Number(page_no) - 1) * Number(limit);
+
+        // Create a search query
+        // Assuming you want to search in a 'name' field. Adjust this as needed.
+        const searchQuery = search
+            ? { name: { $regex: search, $options: 'i' } }
+            : {};
+
+        // Get total count
+        const totalCount = await TradingForm.countDocuments(searchQuery);
+
+        // Get trading forms with pagination and search
+        const tradingForms = await TradingForm.find(searchQuery)
+            .limit(Number(limit))
+            .skip(skip);
+
         res.status(200).json({
-            data: tradingForm
+            data: tradingForms,
+            totalCount,
+            currentPage: Number(page_no),
+            totalPages: Math.ceil(totalCount / Number(limit))
         });
     } catch (error) {
         console.error('Error in getAllTradingForm:', error);
