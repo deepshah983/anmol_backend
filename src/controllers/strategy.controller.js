@@ -30,9 +30,27 @@ const strategyAdd = async (req, res) => {
 // Get all strategies
 const getAllStrategies = async (req, res) => {
     try {
-        const strategies = await Strategy.find();
+        const { limit = 10, page_no = 1, search = '' } = req.query;
+        const skip = (page_no - 1) * limit;
+
+        // Create a search query
+        const searchQuery = search
+            ? { name: { $regex: search, $options: 'i' } }
+            : {};
+
+        // Get total count
+        const totalCount = await Strategy.countDocuments(searchQuery);
+
+        // Get strategies with pagination and search
+        const strategies = await Strategy.find(searchQuery)
+            .limit(Number(limit))
+            .skip(skip);
+
         res.status(200).json({
-            data: strategies
+            data: strategies,
+            totalCount,
+            currentPage: Number(page_no),
+            totalPages: Math.ceil(totalCount / limit)
         });
     } catch (error) {
         console.error('Error in getAllStrategies:', error);
