@@ -24,9 +24,8 @@ const createTradingForm = async (req, res) => {
             tradingForm.triggerPrice = req.body.triggerPrice || undefined;
         } else if (req.body.entryOrder === 'market') {
             tradingForm.priceBufferType = req.body.priceBufferType || undefined;
-            if (req.body.priceBufferType === 'fixed') {
-                tradingForm.priceBuffer = req.body.priceBuffer || undefined;
-            }
+            tradingForm.priceBuffer = req.body.priceBuffer || undefined;
+            
         }
 
         const savedTradingForm = await tradingForm.save();
@@ -111,7 +110,6 @@ const deleteSelectedTradingForm = async (req, res) => {
 
         // Convert the string into an array of ObjectId
         const idsArray = idsObj.split(',').map(id => new mongoose.Types.ObjectId(id));
-        console.log(idsArray);
 
         // Delete documents with the matching IDs
         const result = await TradingForm.deleteMany({

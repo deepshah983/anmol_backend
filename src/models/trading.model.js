@@ -60,7 +60,7 @@ const tradingFormSchema = new mongoose.Schema({
   priceBuffer: {
     type: Number,
     required: function() {
-      return this.entryOrder === 'market' && this.priceBufferType === 'fixed';
+      return this.entryOrder === 'market';
     }
   },
 }, {

@@ -132,9 +132,6 @@ const deleteSelectedStrategy = async (req, res) => {
         let idsObj = req.params.id;
         const idsArray = idsObj.split(',').map(id => new mongoose.Types.ObjectId(id));
         const idsArrayAsStrings = idsArray.map(id => id.toString());
-
-        // Log the IDs for debugging
-        console.log('IDs to delete:', idsArrayAsStrings);
          
         //Delete the strategies from the Strategy collection
         const result = await Strategy.deleteMany({
@@ -146,7 +143,6 @@ const deleteSelectedStrategy = async (req, res) => {
         const matchedDocuments = await UserStrategy.find({
             "assigned_stratagies.strategy_id": { $in: idsArrayAsStrings }
         });
-        console.log('Matched Documents Before Update:', matchedDocuments);
 
         // Remove the corresponding strategies from assigned_stratagies in UserStrategy collection
         const updateResult = await UserStrategy.updateMany(
@@ -155,16 +151,10 @@ const deleteSelectedStrategy = async (req, res) => {
             { multi: true }
         );
 
-        // Log the result of the update for debugging
-        console.log('Update Result:', updateResult);
-
         // After pulling strategies, delete UserStrategy documents where assigned_stratagies array is empty
         const deleteResult = await UserStrategy.deleteMany({
             assigned_stratagies: { $size: 0 }
         });
-
-        // Log the result of the delete operation
-        console.log('Delete Result:', deleteResult);
 
         res.status(200).json({
             message: "Selected Strategies deleted successfully",
