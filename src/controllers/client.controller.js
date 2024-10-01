@@ -29,9 +29,11 @@ const strategySchema = Joi.object({
 });
 
 const treadSettingSchema = Joi.object({
-    key: Joi.string().required(),
-    value: Joi.string().required(),
-    // Add any other required fields for tread setting
+    userId: Joi.string().required(),
+    pin: Joi.string().required(),
+    userKey: Joi.string().required(),
+    appKey: Joi.string().required(),
+    parent_id: Joi.string().required(),
 });
 
 // Add a new client with profile image upload
@@ -73,7 +75,6 @@ const clientAdd = async (req, res) => {
     }
 };
 
-// Get all clients
 // Get all clients with pagination
 const getAllClients = async (req, res) => {
     try {
