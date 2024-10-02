@@ -36,10 +36,6 @@ const clientSchema = new mongoose.Schema({
         ref: 'Category',
         required: false
     },
-    profileImage: {
-        type: String,  // You can also use Buffer if you want to store the image binary data directly
-        default: ''    // Default to an empty string if no image is provided
-    },
 }, {
     timestamps: true
 });

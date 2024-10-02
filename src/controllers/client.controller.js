@@ -13,7 +13,6 @@ const clientSchema = Joi.object({
     entryBalance: Joi.number().required(),
     status: Joi.number().valid(0, 1).default(1),
     categoryId: Joi.string().optional(),
-    profileImage: Joi.string().optional(),
 });
 
 const strategySchema = Joi.object({
@@ -57,8 +56,7 @@ const clientAdd = async (req, res) => {
             phone: req.body.phone,
             status: req?.body?.status,
             entryBalance: req?.body?.entryBalance,
-            categoryId: req.body.categoryId,
-            profileImage: req.file ? req.file.path: ''
+            categoryId: req.body.categoryId
         });
 
         const savedClient = await client.save();
@@ -187,13 +185,6 @@ const deleteClient = async (req, res) => {
         if (!client) {
             return res.status(404).json({
                 message: "Client not found"
-            });
-        }
-
-        // Delete associated image if it exists
-        if (client.profileImage) {
-            fs.unlink(client.profileImage, (err) => {
-                if (err) console.error('Error deleting image:', err);
             });
         }
 
