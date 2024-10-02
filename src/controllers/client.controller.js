@@ -103,23 +103,56 @@ const getAllClients = async (req, res) => {
         // Fetch related data
         const strategies = await Strategy.find();
         const userStrategy = await UserStrategy.find({ parent_id: { $in: clientIds } });
-        const treadSetting = await TreadSetting.find({ parent_id: { $in: clientIds } });
+        const treadSetting = await TreadSetting.find();
+
+        // Map through clients and add corresponding treadSetting
+        const clientsWithTreadSetting = await Promise.all(
+            clients.map(async client => {
+                const clientTreadSetting = treadSetting.find(setting => setting.parent_id.toString() === client._id.toString()) || null;
+                // Extracting necessary fields from treadSetting
+                const { userKey, userId, pin, appKey } = clientTreadSetting || {};
+
+                // Add necessary data to each client
+                const clientData = {
+                    ...client.toObject(), // Convert Mongoose document to plain object
+                    treadSetting: clientTreadSetting, // Add treadSetting to each client
+                    userKey,
+                    userId,
+                    pin,
+                    appKey
+                };
+
+                // If treadSetting is available, get RMS data and append the availablecash
+                if (clientTreadSetting) {
+                    const rmsData = await loginAndGetToken(clientTreadSetting);
+                    console.log(rmsData);
+                    
+                    if (rmsData) {
+                        clientData.availableCash = rmsData.availablecash; // Append availablecash to the client data
+                    } else {
+                        clientData.availableCash = '0.0000'; // Default if no RMS data available
+                    }
+                }
+
+                return clientData;
+            })
+        );
 
         // Calculate total pages
         const totalPages = Math.ceil(totalClients / Number(limit));
 
+        // Response data
         res.status(200).json({
             data: {
-                clients,
+                clients: clientsWithTreadSetting,  // Return the clients with tread settings included
                 strategies,
                 userStrategy,
                 treadSetting
             },
-                totalClients,
-                totalPages,
-                currentPage: Number(page_no),
-                limit: Number(limit),
-            
+            totalClients,
+            totalPages,
+            currentPage: Number(page_no),
+            limit: Number(limit),
         });
 
     } catch (error) {
@@ -130,6 +163,7 @@ const getAllClients = async (req, res) => {
         });
     }
 };
+
 
 // Modify the loginAndGetToken function to return the RMS data
 const loginAndGetToken = async (treadSetting) => {
