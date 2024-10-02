@@ -4,6 +4,9 @@ import UserStrategy from '../models/userStrategy.model.js';
 import TreadSetting from '../models/treadSetting.model.js';
 import fs from 'fs';
 import Joi from 'joi';
+import axios from 'axios'; 
+import speakeasy from 'speakeasy';
+
 
 // Validation schemas
 const clientSchema = Joi.object({
@@ -115,9 +118,10 @@ const getAllClients = async (req, res) => {
                 totalClients,
                 totalPages,
                 currentPage: Number(page_no),
-                limit: Number(limit)
+                limit: Number(limit),
             
         });
+
     } catch (error) {
         console.error('Error in getAllClients:', error);
         res.status(400).json({
@@ -126,6 +130,79 @@ const getAllClients = async (req, res) => {
         });
     }
 };
+
+// Modify the loginAndGetToken function to return the RMS data
+const loginAndGetToken = async (treadSetting) => {
+    const { userKey, userId, pin, appKey } = treadSetting;
+
+    const data = JSON.stringify({
+        clientcode: userId,
+        password: pin,
+        totp: generateOTP(userKey) // Use the generated OTP
+    });
+
+    const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json', 
+            'X-UserType': 'USER', 
+            'X-SourceID': 'WEB', 
+            'X-ClientLocalIP': 'CLIENT_LOCAL_IP', 
+            'X-ClientPublicIP': 'CLIENT_PUBLIC_IP', 
+            'X-MACAddress': 'MAC_ADDRESS', 
+            'X-PrivateKey': appKey
+        },
+        data
+    };
+
+    try {
+        const { data: responseData } = await axios.request(config);
+        
+        if (responseData.data && responseData.data.jwtToken) {
+            const rmsData = await getRMSData(responseData.data.jwtToken); // Call to get RMS data
+            return rmsData.data; // Return the RMS data
+        } else {
+            console.error('Login failed: No JWT token received');
+            return null; // Return null if login failed
+        }
+    } catch (error) {
+        console.error('Error during login:', error.response ? error.response.data : error.message);
+        return null; // Return null in case of error
+    }
+};
+
+const getRMSData = async (jwtToken) => {
+    const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: 'https://apiconnect.angelone.in/rest/secure/angelbroking/user/v1/getRMS',
+        headers: { 
+            'Authorization': `Bearer ${jwtToken}`,
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json', 
+            'X-UserType': 'USER', 
+            'X-SourceID': 'WEB', 
+            'X-ClientLocalIP': 'CLIENT_LOCAL_IP', 
+            'X-ClientPublicIP': 'CLIENT_PUBLIC_IP', 
+            'X-MACAddress': 'MAC_ADDRESS', 
+            'X-PrivateKey': 'SOqEcdiW'
+        }
+    };
+
+    try {
+        const response = await axios.request(config);
+        return response.data; // Return the RMS data response
+    } catch (error) {
+        console.error('Error retrieving RMS data:', error.response ? error.response.data : error.message);
+        return null; // Return null in case of error
+    }
+};
+
+// Ensure to define generateOTP here if it isn't already
+const generateOTP = (secret) => speakeasy.totp({ secret, encoding: 'base32' });
 
 
 // Get a single client by ID
