@@ -134,9 +134,18 @@ const getAllClients = async (req, res) => {
                     }
                 }
 
+                // Ensure availableCash is always a string
+                clientData.availableCash = clientData.availableCash || '0.0000';
+                
                 return clientData;
             })
         );
+
+        // Calculate total available cash
+        const totalAvailableCash = clientsWithTreadSetting.reduce((total, client) => {
+            const availableCashValue = parseFloat(client.availableCash);
+            return !isNaN(availableCashValue) ? total + availableCashValue : total;
+        }, 0);
 
         // Calculate total pages
         const totalPages = Math.ceil(totalClients / Number(limit));
@@ -150,6 +159,7 @@ const getAllClients = async (req, res) => {
                 treadSetting
             },
             totalClients,
+            totalAvailableCash: totalAvailableCash.toFixed(4), // Add total available cash to the response
             totalPages,
             currentPage: Number(page_no),
             limit: Number(limit),
@@ -163,7 +173,6 @@ const getAllClients = async (req, res) => {
         });
     }
 };
-
 
 // Modify the loginAndGetToken function to return the RMS data
 const loginAndGetToken = async (treadSetting) => {
