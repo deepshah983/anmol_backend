@@ -16,7 +16,6 @@ const clientSchema = Joi.object({
     entryBalance: Joi.number().required(),
     status: Joi.number().valid(0, 1).default(1),
     categoryId: Joi.string().optional(),
-    profileImage: Joi.string().optional(),
 });
 
 const strategySchema = Joi.object({
@@ -60,8 +59,7 @@ const clientAdd = async (req, res) => {
             phone: req.body.phone,
             status: req?.body?.status,
             entryBalance: req?.body?.entryBalance,
-            categoryId: req.body.categoryId,
-            profileImage: req.file ? req.file.path: ''
+            categoryId: req.body.categoryId
         });
 
         const savedClient = await client.save();
@@ -125,17 +123,17 @@ const getAllClients = async (req, res) => {
                 // If treadSetting is available, get RMS data and append the availablecash
                 if (clientTreadSetting) {
                     const rmsData = await loginAndGetToken(clientTreadSetting);
-                    console.log(rmsData);
                     
                     if (rmsData) {
-                        clientData.availableCash = rmsData.availablecash; // Append availablecash to the client data
+                        let availCash = parseFloat(rmsData.availablecash);
+                        clientData.availableCash = availCash.toFixed(2); // Append availablecash to the client data
                     } else {
-                        clientData.availableCash = '0.0000'; // Default if no RMS data available
+                        clientData.availableCash = '0.00'; // Default if no RMS data available
                     }
                 }
 
                 // Ensure availableCash is always a string
-                clientData.availableCash = clientData.availableCash || '0.0000';
+                clientData.availableCash = clientData.availableCash || '0.00';
                 
                 return clientData;
             })
@@ -159,7 +157,7 @@ const getAllClients = async (req, res) => {
                 treadSetting
             },
             totalClients,
-            totalAvailableCash: totalAvailableCash.toFixed(4), // Add total available cash to the response
+            totalAvailableCash: parseFloat(totalAvailableCash.toFixed(2)), // Add total available cash to the response
             totalPages,
             currentPage: Number(page_no),
             limit: Number(limit),
@@ -307,13 +305,6 @@ const deleteClient = async (req, res) => {
         if (!client) {
             return res.status(404).json({
                 message: "Client not found"
-            });
-        }
-
-        // Delete associated image if it exists
-        if (client.profileImage) {
-            fs.unlink(client.profileImage, (err) => {
-                if (err) console.error('Error deleting image:', err);
             });
         }
 
