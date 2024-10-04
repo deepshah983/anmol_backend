@@ -123,17 +123,17 @@ const getAllClients = async (req, res) => {
                 // If treadSetting is available, get RMS data and append the availablecash
                 if (clientTreadSetting) {
                     const rmsData = await loginAndGetToken(clientTreadSetting);
-                    console.log(rmsData);
                     
                     if (rmsData) {
-                        clientData.availableCash = rmsData.availablecash; // Append availablecash to the client data
+                        let availCash = parseFloat(rmsData.availablecash);
+                        clientData.availableCash = availCash.toFixed(2); // Append availablecash to the client data
                     } else {
-                        clientData.availableCash = '0.0000'; // Default if no RMS data available
+                        clientData.availableCash = '0.00'; // Default if no RMS data available
                     }
                 }
 
                 // Ensure availableCash is always a string
-                clientData.availableCash = clientData.availableCash || '0.0000';
+                clientData.availableCash = clientData.availableCash || '0.00';
                 
                 return clientData;
             })
@@ -157,7 +157,7 @@ const getAllClients = async (req, res) => {
                 treadSetting
             },
             totalClients,
-            totalAvailableCash: totalAvailableCash.toFixed(4), // Add total available cash to the response
+            totalAvailableCash: parseFloat(totalAvailableCash.toFixed(2)), // Add total available cash to the response
             totalPages,
             currentPage: Number(page_no),
             limit: Number(limit),
