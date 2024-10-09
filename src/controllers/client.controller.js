@@ -79,13 +79,18 @@ const clientAdd = async (req, res) => {
 // Get all clients with pagination
 const getAllClients = async (req, res) => {
     try {
-        const { page_no = 1, limit = 10, search = '' } = req.query;
+        const { page_no = 1, limit = 10, search = '', status = '' } = req.query;
         const skip = (Number(page_no) - 1) * Number(limit);
 
         // Create a search query
-        const searchQuery = search
-            ? { name: { $regex: search, $options: 'i' } }
-            : {};
+        let searchQuery = {};
+        if (search) {
+            searchQuery.name = { $regex: search, $options: 'i' }; // Search by client name
+        }
+        if (status) {
+            searchQuery.status = status; // Add status condition
+        }
+        
 
         // Get total count of clients matching the search criteria
         const totalClients = await Client.countDocuments(searchQuery);
