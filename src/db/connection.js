@@ -1,8 +1,11 @@
 import mongoose from "mongoose";
+import 'dotenv/config'; // Load environment variables
+
+const mongoURI = process.env.MONGO_URI;
 
 const connection = mongoose
-  .connect("mongodb://127.0.0.1:27017/anmol")
+  .connect(mongoURI)
   .then(() => console.log("DB connection successful!"))
-  .catch(() => console.log("DB not connected"));
+  .catch((error) => console.error("DB not connected:", error));
 
 export { connection, mongoose };
