@@ -148,10 +148,77 @@ const deleteSelectedTradingForm = async (req, res) => {
     }
 };
 
+export const exportTradingData = async (req, res) => {
+    try {
+        const tradingData = await TradingForm.find({});
+        res.status(200).json({
+            message: "Trading data exported successfully",
+            data: tradingData
+        });
+    } catch (error) {
+        console.error('Error in exportTradingData:', error);
+        res.status(500).json({
+            message: "Error exporting Trading data",
+            error: error.message
+        });
+    }
+};
+
+export const importTradingData = async (req, res) => {
+    try {
+        const importedData = req.body;
+        
+        if (!Array.isArray(importedData)) {
+            return res.status(400).json({
+                message: "Invalid data format. Expected an array of trading form data."
+            });
+        }
+
+        const results = {
+            success: [],
+            errors: []
+        };
+
+        await Promise.all(importedData.map(async (item, index) => {
+            try {
+                const tradingForm = new TradingForm(item);
+                await tradingForm.save();
+                results.success.push({ index, id: tradingForm._id });
+            } catch (error) {
+                results.errors.push({
+                    index,
+                    message: error.message,
+                    details: error.errors ? Object.keys(error.errors).map(key => ({
+                        field: key,
+                        message: error.errors[key].message
+                    })) : []
+                });
+            }
+        }));
+
+        res.status(207).json({
+            message: "Trading data import completed",
+            totalProcessed: importedData.length,
+            successCount: results.success.length,
+            errorCount: results.errors.length,
+            successfulImports: results.success,
+            errors: results.errors
+        });
+    } catch (error) {
+        console.error('Error in importTradingData:', error);
+        res.status(500).json({
+            message: "Error processing Trading data import",
+            error: error.message
+        });
+    }
+};
+
 export default {
     createTradingForm,
     getAllTradingForm,
     updateTradingForm,
     deleteTradingForm,
-    deleteSelectedTradingForm
+    deleteSelectedTradingForm,
+    exportTradingData,
+    importTradingData
 };
