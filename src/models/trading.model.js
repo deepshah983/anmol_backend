@@ -52,10 +52,16 @@ const tradingFormSchema = new mongoose.Schema({
   },
   priceBufferType: {
     type: String,
+    enum: ['fixed', 'percent'],
     required: function() {
       return this.entryOrder === 'market';
     },
-    enum: ['fixed', 'percent']
+    set: function(value) {
+      if (this.entryOrder === 'market' && value) {
+        return value;
+      }
+      return undefined;
+    }
   },
   priceBuffer: {
     type: Number,
