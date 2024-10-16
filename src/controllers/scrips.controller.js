@@ -101,11 +101,19 @@ export const addInstrumentsHandler = async (req, res) => {
 // Function to fetch instruments from the database
 export const fetchInstrumentsHandler = async (req, res) => {
     try {
-        // Fetch instruments from the database and sort them (e.g., by 'name' in ascending order)
-        const instruments = await Scrip.find({}).sort({ name: 1 }); // Change 'name' to the field you want to sort by
+        // Get the search query from request query parameters
+        const { search } = req.query;
+
+        // Build the search filter
+        const filter = search ? { name: { $regex: search, $options: 'i' } } : {}; // case-insensitive search
+
+        // Fetch instruments from the database, sort them, limit to 50 records, and apply search filter
+        const instruments = await Scrip.find(filter)
+            .sort({ name: 1 })  // Change 'name' to the field you want to sort by
+            .limit(50);
 
         // Get the total count of instruments for pagination
-        const totalCount = await Scrip.countDocuments();
+        const totalCount = await Scrip.countDocuments(filter); // Count documents based on the filter
 
         // Prepare the response data
         res.status(200).json({
@@ -123,6 +131,7 @@ export const fetchInstrumentsHandler = async (req, res) => {
         });
     }
 };
+
 
 export default {
     addInstrumentsHandler,
