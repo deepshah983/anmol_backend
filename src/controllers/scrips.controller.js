@@ -1,40 +1,27 @@
 import Scrip from "../models/scrips.modal.js"; // Import the Scrip model
 import { KiteConnect } from "kiteconnect";
+import cron from 'node-cron';
 
 // Initialize Kite Connect instance with your API key
 const kc = new KiteConnect({
     api_key: "ik9mapuv5o68w0j6" // Use your actual API key
 });
 
-// Store the refresh token globally or in a database
-let refreshToken = "j7HvAJHN4LEYTTa3met2ZetiJJbj3sfq"; // Initial refresh token
-
-// Function to generate a new session and refresh the access token
-const refreshAccessToken = async () => {
-    try {
-        const response = await kc.generateSession(refreshToken, "ob8xt07ell822e0qntnugxc1jreyumdz");
-        // Update access token and refresh token
-        kc.setAccessToken(response.access_token);
-        refreshToken = response.refresh_token; // Update the global refresh token
-        console.log("Access token refreshed successfully");
-    } catch (error) {
-        console.error("Error refreshing access token:", error);
-        throw new Error("Token refresh failed");
-    }
-};
-
 // Handler to fetch instruments from Kite Connect and save them
 export const addInstrumentsHandler = async (req, res) => {
     try {
-        // Ensure access token is valid, refresh if necessary
-        await refreshAccessToken();
+        // Truncate the Scrip collection (delete all documents)
+        await Scrip.deleteMany({});
+        console.log("Scrip collection truncated (all documents deleted)");
 
-        // Fetch all instruments
+        // Fetch all instruments from the Kite Connect API
         const instruments = await kc.getInstruments();
 
-        // Filter instruments for NSE exchange and map them to the Scrip schema format
-        const nseSymbols = instruments
-            .filter(instrument => instrument.exchange === 'NSE' && instrument.tradingsymbol) // Ensure tradingsymbol is not null
+        // Filter instruments for NSE and NFO exchanges and map them to the Scrip schema format
+        const filteredSymbols = instruments
+            .filter(instrument => 
+                (instrument.exchange === 'NSE' || instrument.exchange === 'NFO') && 
+                instrument.tradingsymbol) // Ensure tradingsymbol is not null
             .map(instrument => ({
                 terminalSymbol: instrument.tradingsymbol,
                 expiry: instrument.expiry,
@@ -45,48 +32,40 @@ export const addInstrumentsHandler = async (req, res) => {
                 last_price: instrument.last_price || 0,
                 name: instrument.name || null,
                 tick_size: instrument.tick_size || null,
-                expiration: new Date(instrument.expiry) // Add expiration date
+                expiration: instrument.expiry ? new Date(instrument.expiry) : null // Add expiration date if available
             }));
 
-        console.log(`Total NSE symbols fetched: ${nseSymbols.length}`);
+        console.log(`Total NSE and NFO symbols fetched: ${filteredSymbols.length}`);
 
-        // Check for duplicates in the fetched symbols
-        const uniqueSymbols = Array.from(new Set(nseSymbols.map(symbol => symbol.terminalSymbol)));
-        console.log(`Unique NSE symbols (after removing duplicates): ${uniqueSymbols.length}`);
-
-        // Check the number of existing items in the database before inserting new ones
-        const existingCount = await Scrip.countDocuments();
-        console.log(`Existing items in the database: ${existingCount}`);
-
-        if (nseSymbols.length > 0) {
+        if (filteredSymbols.length > 0) {
+            // Log excluded count
+            const excludedCount = instruments.length - filteredSymbols.length;
+            console.log(`Excluded items (not NSE/NFO or missing tradingsymbol): ${excludedCount}`);
         
-
-            // Use insertMany with ordered: false to ignore duplicate key errors
-            const savedInstruments = await Scrip.insertMany(nseSymbols, { ordered: false })
+            // Insert the filtered symbols into the database
+            const savedInstruments = await Scrip.insertMany(filteredSymbols, { ordered: false })
                 .then(result => {
                     console.log(`Inserted ${result.length} new instruments`);
                     return result;
                 })
                 .catch(err => {
                     if (err.code === 11000) {
-                        console.log('Duplicate symbols detected, skipping those.');
+                        // Log duplicates
+                        console.log('Duplicate symbols detected, skipping those:', filteredSymbols.filter(symbol => {
+                            return Scrip.exists({ terminalSymbol: symbol.terminalSymbol });
+                        }));
                     } else {
+                        console.error('Error inserting instruments:', err); // Log detailed error
                         throw err;
                     }
                 });
-
+        
             // Check the number of items in the database after insertion
             const finalCount = await Scrip.countDocuments();
             console.log(`Final items in the database: ${finalCount}`);
-
-            res.status(201).json({
-                message: "Instruments fetched and saved successfully",
-                data: savedInstruments,
-                totalInDB: finalCount
-            });
         } else {
             res.status(400).json({
-                message: "No valid NSE symbols found for insertion."
+                message: "No valid NSE or NFO symbols found for insertion."
             });
         }
     } catch (error) {
@@ -105,7 +84,12 @@ export const fetchInstrumentsHandler = async (req, res) => {
         const { search } = req.query;
 
         // Build the search filter
-        const filter = search ? { name: { $regex: search, $options: 'i' } } : {}; // case-insensitive search
+        const filter = search ? {
+            $or: [
+                {name: {$regex: search, $options: 'i'}},
+                {terminalSymbol: {$regex: search, $options: 'i'}}
+            ]
+        } : {};
 
         // Fetch instruments from the database, sort them, limit to 50 records, and apply search filter
         const instruments = await Scrip.find(filter)
@@ -132,6 +116,29 @@ export const fetchInstrumentsHandler = async (req, res) => {
     }
 };
 
+// Schedule the cron job to run at 8:30 AM every day
+cron.schedule('30 11 * * *', async () => {
+    try {
+        console.log("Starting daily instrument update at 11:00 AM...");
+        // Simulate a request and response for calling the handler directly
+        const req = {}; // You can pass an empty req object or populate it as needed
+        const res = {
+            status: (statusCode) => ({
+                json: (data) => console.log(`Response:`, data)
+            })
+        };
+
+        // Call the handler
+        await addInstrumentsHandler(req, res);
+
+        console.log("Daily instrument update completed.");
+    } catch (error) {
+        console.error("Error running the cron job:", error);
+    }
+}, {
+    scheduled: true,
+    timezone: "Asia/Kolkata" // Set the appropriate timezone
+});
 
 export default {
     addInstrumentsHandler,
