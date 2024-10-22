@@ -76,7 +76,6 @@ const clientAdd = async (req, res) => {
     }
 };
 
-// Get all clients with pagination and accurate available cash data
 const getAllClients = async (req, res) => {
     try {
         const { page_no = 1, limit = 10, search = '', status = '' } = req.query;
@@ -91,17 +90,23 @@ const getAllClients = async (req, res) => {
             searchQuery.status = status;
         }
 
-        // Get total count of clients matching the search criteria
-        const totalClients = await Client.countDocuments(searchQuery);
-
-        // Fetch clients with pagination and search
-        const clients = await Client.find(searchQuery)
-            .skip(skip)
-            .limit(Number(limit));
+        // Get total count and fetch clients in parallel
+        const [totalClients, clients] = await Promise.all([
+            Client.countDocuments(searchQuery),
+            Client.find(searchQuery)
+                .skip(skip)
+                .limit(Number(limit))
+        ]);
 
         if (!clients || clients.length === 0) {
             return res.status(200).json({
-                data: [],
+                success: true,
+                data: {
+                    clients: [],
+                    strategies: [],
+                    userStrategy: [],
+                    treadSettings: []
+                },
                 totalClients: 0,
                 totalAvailableCash: 0,
                 totalPages: 0,
@@ -110,40 +115,40 @@ const getAllClients = async (req, res) => {
             });
         }
 
-        // Fetch related data for strategies, user strategies, and tread settings
+        // Fetch related data in parallel
         const clientIds = clients.map(client => client._id);
-        const strategies = await Strategy.find();
-        const userStrategy = await UserStrategy.find({ parent_id: { $in: clientIds } });
-        const treadSettings = await TreadSetting.find({ parent_id: { $in: clientIds } });
+        const [strategies, userStrategy, treadSettings] = await Promise.all([
+            Strategy.find(),
+            UserStrategy.find({ parent_id: { $in: clientIds } }),
+            TreadSetting.find({ parent_id: { $in: clientIds } })
+        ]);
 
-        // Process clients to add treadSetting and available cash
+        // Process clients with improved error handling and retries
         const clientsWithTreadSetting = await Promise.all(
             clients.map(async client => {
-                const treadSetting = treadSettings.find(setting => setting.parent_id.toString() === client._id.toString()) || null;
-                const { userKey, userId, pin, appKey } = treadSetting || {};
+                const treadSetting = treadSettings.find(
+                    setting => setting.parent_id.toString() === client._id.toString()
+                );
 
                 const clientData = {
                     ...client.toObject(),
-                    treadSetting,
-                    userKey,
-                    userId,
-                    pin,
-                    appKey,
-                    availableCash: '0.00' // Default value if no treadSetting or data found
+                    treadSetting: treadSetting || null,
+                    userKey: treadSetting?.userKey || null,
+                    userId: treadSetting?.userId || null,
+                    pin: treadSetting?.pin || null,
+                    appKey: treadSetting?.appKey || null,
+                    availableCash: '0.00'
                 };
 
-                // If treadSetting exists, fetch RMS data
                 if (treadSetting) {
                     try {
-                        
-                        const rmsData = await loginAndGetToken(treadSetting);
-        
-                        if (rmsData && rmsData.availablecash) {
-                           
-                            clientData.availableCash = parseFloat(rmsData.availablecash).toFixed(2);
+                        const rmsData = await loginAndGetRMSData(treadSetting);
+                        if (rmsData?.data?.availablecash) {
+                            clientData.availableCash = parseFloat(rmsData.data.availablecash).toFixed(2);
                         }
                     } catch (error) {
-                        console.error(`Error fetching RMS data for client ${client._id}:`, error.message);
+                        console.error(`Error fetching RMS data for client ${client._id}:`, error);
+                        clientData.rmsError = error.message;
                     }
                 }
 
@@ -151,16 +156,16 @@ const getAllClients = async (req, res) => {
             })
         );
 
-        // Calculate total available cash across all clients
+        // Calculate totals
         const totalAvailableCash = clientsWithTreadSetting.reduce((total, client) => {
             const availableCashValue = parseFloat(client.availableCash);
             return !isNaN(availableCashValue) ? total + availableCashValue : total;
         }, 0);
 
-        // Calculate total pages based on client count
         const totalPages = Math.ceil(totalClients / Number(limit));
 
         res.status(200).json({
+            success: true,
             data: {
                 clients: clientsWithTreadSetting,
                 strategies,
@@ -174,87 +179,154 @@ const getAllClients = async (req, res) => {
             limit: Number(limit),
         });
     } catch (error) {
-        console.error('Error in getAllClients:', error.message);
+        console.error('Error in getAllClients:', error);
         res.status(500).json({
+            success: false,
             message: "Error retrieving clients and related data",
             error: error.message
         });
     }
 };
 
-// Fetch RMS data after login
-const loginAndGetToken = async (treadSetting) => {
+// Improved helper functions with better error handling
+const generateOTP = (secret) => {
+    try {
+        return speakeasy.totp({ secret, encoding: 'base32' });
+    } catch (error) {
+        console.error('Error generating OTP:', error);
+        throw new Error(`Failed to generate OTP: ${error.message}`);
+    }
+};
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const loginAndGetRMSData = async (treadSetting, maxRetries = 3) => {
     const { userKey, userId, pin, appKey } = treadSetting;
-    
-    const data = JSON.stringify({
-        clientcode: userId,
-        password: pin,
-        totp: generateOTP(userKey) // Use the generated OTP
-    });
 
-    const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-UserType': 'USER',
-            'X-SourceID': 'WEB',
-            'X-ClientLocalIP': 'CLIENT_LOCAL_IP',
-            'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
-            'X-MACAddress': 'MAC_ADDRESS',
-            'X-PrivateKey': appKey
-        },
-        data
-    };
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const otp = generateOTP(userKey);
 
-    try {
-        const { data: responseData } = await axios.request(config);
-        
-        if (responseData && responseData.data && responseData.data.jwtToken) {
-            const rmsData = await getRMSData(responseData.data.jwtToken);
-            return rmsData.data;
-        } else {
-            console.error('Login failed: No JWT token received');
-            return null;
+            // Login request
+            const loginResponse = await axios.post(
+                'https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword',
+                {
+                    clientcode: userId,
+                    password: pin,
+                    totp: otp
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-UserType': 'USER',
+                        'X-SourceID': 'WEB',
+                        'X-ClientLocalIP': 'CLIENT_LOCAL_IP',
+                        'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
+                        'X-MACAddress': 'MAC_ADDRESS',
+                        'X-PrivateKey': appKey
+                    },
+                    timeout: 10000 // 10 second timeout
+                }
+            );
+
+            if (!loginResponse.data?.data?.jwtToken) {
+                throw new Error('Login failed: No JWT token received');
+            }
+
+            // RMS data request
+            const rmsResponse = await axios.get(
+                'https://apiconnect.angelone.in/rest/secure/angelbroking/user/v1/getRMS',
+                {
+                    headers: {
+                        'Authorization': `Bearer ${loginResponse.data.data.jwtToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-UserType': 'USER',
+                        'X-SourceID': 'WEB',
+                        'X-ClientLocalIP': 'CLIENT_LOCAL_IP',
+                        'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
+                        'X-MACAddress': 'MAC_ADDRESS',
+                        'X-PrivateKey': appKey
+                    },
+                    timeout: 10000
+                }
+            );
+
+            return rmsResponse.data;
+
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed for tread setting ${treadSetting._id}:`, error.message);
+            
+            if (attempt === maxRetries) {
+                throw new Error(`All ${maxRetries} attempts failed: ${error.message}`);
+            }
+
+            // Exponential backoff
+            await sleep(1000 * Math.pow(2, attempt - 1));
         }
-    } catch (error) {
-        console.error('Error during login:', error.message);
-        return null;
     }
 };
 
-// Fetch RMS data using the token
-const getRMSData = async (jwtToken) => {
-    const config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: 'https://apiconnect.angelone.in/rest/secure/angelbroking/user/v1/getRMS',
-        headers: {
-            'Authorization': `Bearer ${jwtToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-UserType': 'USER',
-            'X-SourceID': 'WEB',
-            'X-ClientLocalIP': 'CLIENT_LOCAL_IP',
-            'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
-            'X-MACAddress': 'MAC_ADDRESS',
-            'X-PrivateKey': 'SOqEcdiW'
-        }
-    };
-
+// Dashboard data controller with improved error handling
+const getTotalFund = async (req, res) => {
     try {
-        const response = await axios.request(config);
-        return response.data;
+        const treadSettings = await TreadSetting.find();
+        let totalAvailableCash = 0;
+        let processedSettings = 0;
+        let failedSettings = 0;
+
+        // Process in batches to avoid overwhelming the API
+        const batchSize = 5;
+        for (let i = 0; i < treadSettings.length; i += batchSize) {
+            const batch = treadSettings.slice(i, i + batchSize);
+            const results = await Promise.all(
+                batch.map(async (treadSetting) => {
+                    try {
+                        const rmsData = await loginAndGetRMSData(treadSetting);
+                        const availableCash = parseFloat(rmsData?.data?.availablecash || 0);
+                        return { success: !isNaN(availableCash), cash: availableCash };
+                    } catch (error) {
+                        console.error(`Failed to get RMS data for setting ${treadSetting._id}:`, error);
+                        return { success: false, error: error.message };
+                    }
+                })
+            );
+
+            results.forEach(result => {
+                if (result.success) {
+                    totalAvailableCash += result.cash;
+                    processedSettings++;
+                } else {
+                    failedSettings++;
+                }
+            });
+
+            // Add delay between batches
+            if (i + batchSize < treadSettings.length) {
+                await sleep(1000);
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalAvailableCash: '₹' + totalAvailableCash.toFixed(2),
+                processedSettings,
+                failedSettings,
+                totalSettings: treadSettings.length
+            },
+        });
+
     } catch (error) {
-        console.error('Error retrieving RMS data:', error.message);
-        return null;
+        console.error('Error in getTotalFund:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve total fund data',
+            error: error.message,
+        });
     }
 };
-
-// Generate OTP using speakeasy
-const generateOTP = (secret) => speakeasy.totp({ secret, encoding: 'base32' });
 
 
 // Get a single client by ID
