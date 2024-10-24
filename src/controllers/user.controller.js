@@ -218,6 +218,52 @@ const refreshToken = async (req, res) => {
       })
   })
 }
+// Update Password
+const updatePassword = async (req, res) => {
+  const { old_password, new_password, confirm_password } = req.body;
+
+  // Check if new password and confirm password match
+  if (new_password !== confirm_password) {
+    return res.status(400).json({
+      error: true,
+      message: "New password and confirm password do not match.",
+    });
+  }
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        error: true,
+        message: "User not found.",
+      });
+    }
+
+    // Check if old password is correct
+    const isMatch = await user.comparePassword(old_password);
+    if (!isMatch) {
+      return res.status(401).json({
+        error: true,
+        message: "Old password is incorrect.",
+      });
+    }
+
+    // Update password
+    user.password = new_password; // The password will be hashed in the pre-save hook
+    await user.save();
+
+    return res.status(200).json({
+      message: "Password updated successfully.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: true,
+      message: "Error updating password.",
+      details: error.message,
+    });
+  }
+};
 
 
 export default {
@@ -227,5 +273,6 @@ export default {
   updateUser,
   deleteUser,
   loginUser,
-  refreshToken
+  refreshToken,
+  updatePassword
 };
