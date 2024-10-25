@@ -31,6 +31,11 @@ const clientSchema = new mongoose.Schema({
         enum: [0, 1],  // 0 for Inactive, 1 for Active
         default: 1     // Default to Active
     },
+    quantityMultiplier: {
+        type: Number,
+        required: true,
+        min: 1 // Assuming multiplier must be at least 1
+    },
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',

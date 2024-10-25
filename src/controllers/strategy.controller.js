@@ -10,7 +10,6 @@ const strategyAdd = async (req, res) => {
         entryTime: req.body.entryTime || 0,
         exitTime: req.body.exitTime || 0,
         squareOffTime: req.body.squareOffTime || 0,
-        quantityMultiplier: req.body.quantityMultiplier || 1
     });
 
         const savedStrategy = await strategy.save();
