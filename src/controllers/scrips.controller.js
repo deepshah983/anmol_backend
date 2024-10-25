@@ -1,6 +1,8 @@
 import Scrip from "../models/scrips.modal.js"; // Import the Scrip model
+import ZerodhaAuthToken from "../models/zerodhaAuthToken.model.js"
 import { KiteConnect } from "kiteconnect";
 import cron from 'node-cron';
+import axios from 'axios'; 
 
 // Initialize Kite Connect instance with your API key
 const kc = new KiteConnect({
@@ -99,11 +101,14 @@ export const fetchInstrumentsHandler = async (req, res) => {
         // Get the total count of instruments for pagination
         const totalCount = await Scrip.countDocuments(filter); // Count documents based on the filter
 
+        const tokenData = await ZerodhaAuthToken.find({}, { orderTypes: 1, products: 1, _id: 0 });
+
         // Prepare the response data
         res.status(200).json({
             message: "Instruments fetched successfully",
             data: {
                 instruments,
+                tokenData,
                 totalCount,
             }
         });
@@ -140,7 +145,52 @@ cron.schedule('30 11 * * *', async () => {
     timezone: "Asia/Kolkata" // Set the appropriate timezone
 });
 
+
+export const fetchTradeQuote = async (req, res) => {
+    try {
+        const token = await ZerodhaAuthToken.find({}, { accessToken: 1, _id: 0 });
+        if (token) {
+            const accessToken = token[0]?.accessToken
+            const id = req.params[0];
+            let config = {
+                method: 'get',
+                maxBodyLength: Infinity,
+                url: `https://api.kite.trade/quote?i=${id}`,
+                headers: { 
+                  'X-Kite-Version': ' 3', 
+                  'Authorization': ` token ik9mapuv5o68w0j6:${accessToken}`
+                }
+              };
+              
+              axios.request(config)
+              .then((response) => {
+                //console.log(JSON.stringify(response.data));
+                res.status(200).json({
+                    message: "Trade Quote getting Successfully!",
+                    data: response?.data
+                });
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+            
+
+        } else {
+            res.status(404).json({
+                message: "Trade Quote not found"
+            });
+        }
+    } catch (error) {
+        console.error('Error in Trade Quote:', error);
+        res.status(400).json({
+            message: "Error retrieving Trade Quote",
+            error: error.message
+        });
+    }
+};
+
 export default {
     addInstrumentsHandler,
-    fetchInstrumentsHandler
+    fetchInstrumentsHandler,
+    fetchTradeQuote
 };

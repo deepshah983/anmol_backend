@@ -11,21 +11,22 @@ const createTradingForm = async (req, res) => {
             dynamicExpiry: req.body.dynamicExpiry || '',
             dynamicStrike: req.body.dynamicStrike || '',
             qtyType: req.body.qtyType || '',
+            quantity: req.body.quantity || '',
+            exposure: req.body.exposure || '',
+            roundLotSize: req.body.roundLotSize || '',
             prodType: req.body.prodType || '',
             entryOrder: req.body.entryOrder || '',
             exitOrder: req.body.exitOrder || '',
             exitTime: req.body.exitTime || '',
             strategy: req.body.strategy || '',
+            hasExpiry: req.body.hasExpiry || '',
+            hasStrike: req.body.hasStrike || '',
         });
         
         // Add fields based on entryOrder
         if (req.body.entryOrder === 'SLL') {
             tradingForm.price = req.body.price || undefined;
             tradingForm.triggerPrice = req.body.triggerPrice || undefined;
-        } else if (req.body.entryOrder === 'market') {
-            tradingForm.priceBufferType = req.body.priceBufferType || undefined;
-            tradingForm.priceBuffer = req.body.priceBuffer || undefined;
-            
         }
 
         const savedTradingForm = await tradingForm.save();
@@ -80,6 +81,7 @@ const getAllTradingForm = async (req, res) => {
 // Update a Trading form
 const updateTradingForm = async (req, res) => {
     try {
+        
         const updatedTradingForm = await TradingForm.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (updatedTradingForm) {
             res.status(200).json({
