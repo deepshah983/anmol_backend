@@ -14,6 +14,7 @@ const clientSchema = Joi.object({
     email: Joi.string().email().required(),
     phone: Joi.string().pattern(/^\d+$/).min(10).max(15).required(),
     entryBalance: Joi.number().required(),
+    quantityMultiplier: Joi.number().required().default(1),
     status: Joi.number().valid(0, 1).default(1),
     categoryId: Joi.string().optional(),
 });
@@ -57,6 +58,7 @@ const clientAdd = async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
+            quantityMultiplier: req.body.quantityMultiplier || 1,
             status: req?.body?.status,
             entryBalance: req?.body?.entryBalance,
             categoryId: req.body.categoryId

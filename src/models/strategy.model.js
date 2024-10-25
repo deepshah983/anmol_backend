@@ -19,11 +19,6 @@ const strategySchema = new mongoose.Schema({
         type: String,
         required: false,
     },
-    quantityMultiplier: {
-        type: Number,
-        required: true,
-        min: 1 // Assuming multiplier must be at least 1
-    }
 }, {
     timestamps: true
 });
