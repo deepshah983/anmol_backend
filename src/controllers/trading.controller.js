@@ -21,6 +21,7 @@ const createTradingForm = async (req, res) => {
             strategy: req.body.strategy || '',
             hasExpiry: req.body.hasExpiry || '',
             hasStrike: req.body.hasStrike || '',
+            sharePrice: req.body.sharePrice || ''
         });
         
         // Add fields based on entryOrder
