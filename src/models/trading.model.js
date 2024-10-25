@@ -5,6 +5,9 @@ const tradingFormSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  sharePrice: {
+    type: Number
+  },
   hasExpiry: {
     type: Boolean,
     default: true
