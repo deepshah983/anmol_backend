@@ -27,6 +27,39 @@ const strategyAdd = async (req, res) => {
 };
 
 // Get all strategies
+// const getAllStrategies = async (req, res) => {
+//     try {
+//         const { limit = 10, page_no = 1, search = '' } = req.query;
+//         const skip = (page_no - 1) * limit;
+
+//         // Create a search query
+//         const searchQuery = search
+//             ? { name: { $regex: search, $options: 'i' } }
+//             : {};
+
+//         // Get total count
+//         const totalCount = await Strategy.countDocuments(searchQuery);
+
+//         // Get strategies with pagination and search
+//         const strategies = await Strategy.find(searchQuery)
+//             .limit(Number(limit))
+//             .skip(skip);
+
+//         res.status(200).json({
+//             data: strategies,
+//             totalCount,
+//             currentPage: Number(page_no),
+//             totalPages: Math.ceil(totalCount / limit)
+//         });
+//     } catch (error) {
+//         console.error('Error in getAllStrategies:', error);
+//         res.status(400).json({
+//             message: "Error retrieving strategies",
+//             error: error.message
+//         });
+//     }
+// };
+
 const getAllStrategies = async (req, res) => {
     try {
         const { limit = 10, page_no = 1, search = '' } = req.query;
@@ -41,12 +74,34 @@ const getAllStrategies = async (req, res) => {
         const totalCount = await Strategy.countDocuments(searchQuery);
 
         // Get strategies with pagination and search
-        const strategies = await Strategy.find(searchQuery)
+        let strategies = await Strategy.find(searchQuery)
             .limit(Number(limit))
             .skip(skip);
 
+        // Get user counts for each strategy
+        const strategiesWithUserCount = await Promise.all(
+            strategies.map(async (strategy) => {
+                // Find users who have this strategy either as main strategy or in assigned_stratagies
+                const userCount = await UserStrategy.countDocuments({
+                    $or: [
+                        { strategy_id: strategy._id.toString() },
+                        {
+                            'assigned_stratagies.strategy_id': strategy._id.toString()
+                        }
+                    ]
+                });
+
+                // Convert the strategy to a plain object and add the user count
+                const strategyObj = strategy.toObject();
+                return {
+                    ...strategyObj,
+                    assignedUsersCount: userCount
+                };
+            })
+        );
+
         res.status(200).json({
-            data: strategies,
+            data: strategiesWithUserCount,
             totalCount,
             currentPage: Number(page_no),
             totalPages: Math.ceil(totalCount / limit)

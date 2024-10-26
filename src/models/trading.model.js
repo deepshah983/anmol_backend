@@ -35,32 +35,32 @@ const tradingFormSchema = new mongoose.Schema({
   qtyType: {
     type: String,
     required: true,
-    enum: ['fixed', 'explorer']
+    enum: ['sl', 'exposure']
   },
-  // New fields for fixed
+  // New fields for sl
   quantity: {
     type: Number,
     required: function() {
-      return this.qtyType == 'fixed';
+      return this.qtyType == 'sl';
     },
     min: [1, 'Quantity must be at least 1'],
     set: function(value) {
       
-      if ((this?.qtyType == 'fixed' || this?._update?.qtyType == 'fixed') && value) {
+      if ((this?.qtyType == 'sl' || this?._update?.qtyType == 'sl') && value) {
         return value;
       }
       return undefined;
     }
   },
-  // New fields for explorer
+  // New fields for exposure
   exposure: {
     type: Number,
     required: function() {
-      return this.qtyType === 'explorer';
+      return this.qtyType === 'exposure';
     },
     min: [1, 'Exposure must be at least 1'],
     set: function(value) {
-      if ((this.qtyType === 'explorer' || this?._update?.qtyType === 'explorer') && value) {
+      if ((this.qtyType === 'exposure' || this?._update?.qtyType === 'exposure') && value) {
         return value;
       }
       return undefined;
@@ -69,11 +69,11 @@ const tradingFormSchema = new mongoose.Schema({
   roundLotSize: {
     type: Number,
     required: function() {
-      return this.qtyType === 'explorer';
+      return this.qtyType === 'exposure';
     },
     min: [1, 'Round lot size must be at least 1'],
     set: function(value) {
-      if ((this.qtyType === 'explorer' || this?._update?.qtyType === 'explorer') && value) {
+      if ((this.qtyType === 'exposure' || this?._update?.qtyType === 'exposure') && value) {
         return value;
       }
       return undefined;
@@ -124,10 +124,10 @@ tradingFormSchema.pre('validate', function(next) {
   }
 
   // Clear quantity fields based on qtyType
-  if (this.qtyType === 'fixed') {
+  if (this.qtyType === 'sl') {
     this.exposure = undefined;
     this.roundLotSize = undefined;
-  } else if (this.qtyType === 'explorer') {
+  } else if (this.qtyType === 'exposure') {
     this.quantity = undefined;
   }
 
@@ -149,16 +149,16 @@ tradingFormSchema.methods.validateForm = function() {
   }
 
   // Validate quantity fields based on qtyType
-  if (this.qtyType === 'fixed') {
+  if (this.qtyType === 'sl') {
     if (!this.quantity) {
-      errors.quantity = 'Quantity is required for fixed';
+      errors.quantity = 'Quantity is required for Stop Loss';
     }
-  } else if (this.qtyType === 'explorer') {
+  } else if (this.qtyType === 'exposure') {
     if (!this.exposure) {
-      errors.exposure = 'Exposure is required for explorer';
+      errors.exposure = 'Exposure is required for exposure';
     }
     if (!this.roundLotSize) {
-      errors.roundLotSize = 'Round lot size is required for explorer';
+      errors.roundLotSize = 'Round lot size is required for exposure';
     }
   }
 
