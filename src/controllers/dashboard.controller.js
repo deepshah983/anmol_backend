@@ -19,7 +19,7 @@ const generateOTP = (secret) => {
 // Function to login and get RMS data with retry mechanism
 const loginAndGetRMSData = async (treadSetting, maxRetries = 3) => {
     const { userKey, userId, pin, appKey } = treadSetting;
-
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const otp = generateOTP(userKey);
@@ -71,9 +71,9 @@ const loginAndGetRMSData = async (treadSetting, maxRetries = 3) => {
 
             return rmsResponse.data;
         } catch (error) {
-            console.error(`Attempt ${attempt} failed for tread setting ${treadSetting._id}:`, error.message);
+            //console.error(`Attempt ${attempt} failed for tread setting ${treadSetting._id}:`, error.message);
             if (attempt === maxRetries) {
-                console.error(`All ${maxRetries} attempts failed for tread setting ${treadSetting._id}`);
+                //console.error(`All ${maxRetries} attempts failed for tread setting ${treadSetting._id}`);
                 return null;
             }
             // Wait for a short time before retrying
@@ -137,7 +137,7 @@ const getTotalFund = async (req, res) => {
                 failedSettings++;
             }
         });
-
+        
         res.status(200).json({
             success: true,
             data: {
@@ -158,7 +158,142 @@ const getTotalFund = async (req, res) => {
     }
 };
 
+const dashboardGenerateTokens = async (req, res) => {
+    try {
+        // First get active clients
+        const activeClients = await Client.find({ status: 1 });
+
+        if (!activeClients || activeClients.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No active clients found"
+            });
+        }
+
+        // Get their IDs
+        const clientIds = activeClients.map(client => client._id);
+
+        // Fetch tread settings for active clients
+        const treadSettings = await TreadSetting.find({
+            parent_id: { $in: clientIds }
+        });
+
+        if (!treadSettings || treadSettings.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No tread settings found for active clients"
+            });
+        }
+
+        // Track success and failures
+        const results = {
+            successful: 0,
+            failed: 0
+        };
+
+        
+        // Process each tread setting
+        const tokenPromises = treadSettings.map(async (treadSetting) => {
+            try {
+                const authData = await dashboardLoginAndGetRMSData(treadSetting);
+                
+                // Update tread setting with new token and TOTP
+                await TreadSetting.findByIdAndUpdate(
+                    treadSetting._id,
+                    {
+                        $set: {
+                            bearerToken: authData.bearerToken,
+                            totp: authData.totp,
+                            lastTokenUpdate: new Date()
+                        }
+                    }
+                );
+                results.successful++;
+            } catch (error) {
+                results.failed++;
+                console.error(`Token generation skipped for tread setting ${treadSetting._id}:`, error.message);
+            }
+        });
+
+        // Wait for all token generation attempts to complete
+        await Promise.all(tokenPromises);
+
+        res.status(200).json({
+            success: true,
+            message: "Token generation process completed",
+            summary: {
+                totalProcessed: treadSettings.length,
+                successful: results.successful,
+                failed: results.failed
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in generateTokens:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error in token generation process",
+            error: error.message
+        });
+    }
+};
+
+
+
+const dashboardLoginAndGetRMSData = async (treadSetting, maxRetries = 3) => {
+    const { userKey, userId, pin, appKey } = treadSetting;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const otp = generateOTP(userKey);
+
+            
+            // Login request
+            const loginResponse = await axios.post(
+                'https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword',
+                {
+                    clientcode: userId,
+                    password: pin,
+                    totp: otp
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-UserType': 'USER',
+                        'X-SourceID': 'WEB',
+                        'X-ClientLocalIP': 'CLIENT_LOCAL_IP',
+                        'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
+                        'X-MACAddress': 'MAC_ADDRESS',
+                        'X-PrivateKey': appKey
+                    },
+                    timeout: 10000
+                }
+            );
+
+            if (!loginResponse.data?.data?.jwtToken) {
+                throw new Error('Login failed: No JWT token received');
+            }
+            
+            return {
+                totp: otp,
+                bearerToken: loginResponse.data.data.jwtToken
+            };
+
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed for tread setting ${treadSetting._id}:`, error.message);
+            
+            if (attempt === maxRetries) {
+                throw new Error(`All ${maxRetries} attempts failed: ${error.message}`);
+            }
+
+            await sleep(1000 * Math.pow(2, attempt - 1));
+        }
+    }
+};
+
 export default {
     getCounts,
-    getTotalFund
+    getTotalFund,
+    dashboardGenerateTokens
 };

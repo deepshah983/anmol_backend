@@ -52,7 +52,7 @@ const userAdd = async (req, res) => {
 
 // Get all users
 const getAllUsers = (req, res) => {
-  console.log("hello");
+
   User.find()
     .then((users) => {
       res.status(200).json({
@@ -91,9 +91,7 @@ const getUserById = (req, res) => {
 
 // Update a user
 const updateUser = (req, res) => {
-  console.log(req.body);
 
-  
   User.findByIdAndUpdate(req.params.id, req.body, { new: true })
     .then((user) => {
       res.status(200).json({

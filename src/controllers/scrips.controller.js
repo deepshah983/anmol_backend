@@ -14,7 +14,6 @@ export const addInstrumentsHandler = async (req, res) => {
     try {
         // Truncate the Scrip collection (delete all documents)
         await Scrip.deleteMany({});
-        console.log("Scrip collection truncated (all documents deleted)");
 
         // Fetch all instruments from the Kite Connect API
         const instruments = await kc.getInstruments();
@@ -31,6 +30,7 @@ export const addInstrumentsHandler = async (req, res) => {
                 instrument_type: instrument.instrument_type || null,
                 lot_size: instrument.lot_size || null,
                 exchange: instrument.exchange || null,
+                symboltoken: instrument.symboltoken || null,
                 last_price: instrument.last_price || 0,
                 name: instrument.name || null,
                 tick_size: instrument.tick_size || null,
@@ -164,7 +164,7 @@ export const fetchTradeQuote = async (req, res) => {
               
               axios.request(config)
               .then((response) => {
-                //console.log(JSON.stringify(response.data));
+              
                 res.status(200).json({
                     message: "Trade Quote getting Successfully!",
                     data: response?.data

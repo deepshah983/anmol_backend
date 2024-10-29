@@ -1,5 +1,6 @@
 import TradingForm from '../models/trading.model.js';
 import  mongoose from 'mongoose';
+import TreadSetting from '../models/treadSetting.model.js';
 
 // Add a new Trading form
 const createTradingForm = async (req, res) => {
@@ -216,6 +217,95 @@ export const importTradingData = async (req, res) => {
     }
 };
 
+
+export const buySellRecord = async (req, res) => {
+    try {
+
+        const {variety, tradingsymbol, symboltoken, transactiontype, exchange, ordertype, producttype, duration, price, squareoff, stoploss, quantity} = req.body
+        // Get all trading settings
+        const tradingSettings = await TreadSetting.find({});
+        
+        // Process only settings with bearer tokens
+        const results = await Promise.all(
+            tradingSettings
+                .filter(setting => setting.bearerToken)
+                .map(async (setting) => {
+                    const orderData = {
+                        variety,
+                        tradingsymbol,
+                        symboltoken,
+                        transactiontype,
+                        exchange,
+                        ordertype,
+                        producttype,
+                        duration,
+                        price,
+                        squareoff,
+                        stoploss,
+                        quantity
+                    };
+
+                    const config = {
+                        method: 'post',
+                        maxBodyLength: Infinity,
+                        url: 'https://apiconnect.angelone.in/rest/secure/angelbroking/order/v1/placeOrder',
+                        headers: {
+                            'Authorization': `Bearer ${setting.bearerToken}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-UserType': 'USER',
+                            'X-SourceID': 'WEB',
+                            'X-ClientLocalIP': setting?.clientLocalIP || 'CLIENT_LOCAL_IP',
+                            'X-ClientPublicIP': setting?.clientPublicIP || 'CLIENT_PUBLIC_IP',
+                            'X-MACAddress': setting?.macAddress || 'MAC_ADDRESS',
+                            'X-PrivateKey': setting.appKey || 'API_KEY'
+                        },
+                        data: orderData
+                    };
+
+                    try {
+                        // const response = await axios.request(config);
+                        // return {
+                        //     userId: setting.userId,
+                        //     success: true,
+                        //     data: response.data
+                        // };
+                    } catch (error) {
+                        return {
+                            userId: setting.userId,
+                            success: false,
+                            error: error.message
+                        };
+                    }
+                })
+        );
+
+        // Send response with all results
+        res.status(200).json({
+            success: true,
+            message: 'Orders processed',
+            results: results
+        });
+
+    } catch (error) {
+        console.error('Error in buyRecord:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error processing orders',
+            error: error.message
+        });
+    }
+    
+};
+
+export const shortRecord = async (req, res) => {
+
+};
+
+export const coverRecord = async (req, res) => {
+
+};
+
 export default {
     createTradingForm,
     getAllTradingForm,
@@ -223,5 +313,8 @@ export default {
     deleteTradingForm,
     deleteSelectedTradingForm,
     exportTradingData,
-    importTradingData
+    importTradingData,
+    buySellRecord,
+    shortRecord,
+    coverRecord
 };
