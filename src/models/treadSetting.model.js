@@ -26,6 +26,18 @@ const clientSchema = new mongoose.Schema({
         required: true,
         minlength: 1
     },
+    bearerToken: {
+        type: {},
+        required: false
+    },
+    totp: {
+        type: {},
+        required: false
+    },
+    lastTokenUpdate: {
+        type: {},
+        required: false
+    },
    
 }, {
     timestamps: true

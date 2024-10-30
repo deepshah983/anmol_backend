@@ -86,7 +86,7 @@ const tradingFormSchema = new mongoose.Schema({
   entryOrder: {
     type: String,
     required: true,
-    enum: ['SLL', 'market', 'option2']
+    enum: ['SLL', 'MARKET']
   },
   exitOrder: {
     type: String,
@@ -95,6 +95,22 @@ const tradingFormSchema = new mongoose.Schema({
   strategy: {
     type: String,
     required: true,
+  },
+  exchange: {
+    type: {},
+    required: false
+  },
+  tickSize: {
+      type: {},
+      required: false
+  },
+  instrumentType: {
+      type: {},
+      required: false
+  },
+  lotSize: {
+      type: {},
+      required: false
   },
   price: {
     type: Number,
