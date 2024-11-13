@@ -138,7 +138,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "The email or password you have entered is incorrect. Please try again.",
       });
     }
 
@@ -147,7 +147,7 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "The email or password you have entered is incorrect. Please try again.",
       });
     }
 
@@ -218,7 +218,7 @@ const refreshToken = async (req, res) => {
 }
 // Update Password
 const updatePassword = async (req, res) => {
-  const { old_password, new_password, confirm_password } = req.body;
+  const { user_id, old_password, new_password, confirm_password } = req.body;
 
   // Check if new password and confirm password match
   if (new_password !== confirm_password) {
@@ -228,9 +228,16 @@ const updatePassword = async (req, res) => {
     });
   }
 
+  if (new_password == old_password) {
+    return res.status(400).json({
+      error: true,
+      message: "New password must be different from the old password.",
+    });
+  }
+
   try {
     // Find the user by ID
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(user_id);
     if (!user) {
       return res.status(404).json({
         error: true,
@@ -253,6 +260,7 @@ const updatePassword = async (req, res) => {
 
     return res.status(200).json({
       message: "Password updated successfully.",
+      data: user
     });
   } catch (error) {
     return res.status(500).json({

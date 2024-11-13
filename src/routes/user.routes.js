@@ -8,7 +8,7 @@ const { userAdd, getAllUsers, getUserById, updateUser, deleteUser, loginUser, re
 
 userRoute.post('/api/authorization/login', loginUser);
 userRoute.post('/api/authorization/refresh-token', refreshToken);
-userRoute.put('/api/authorization/:id/update-password', verifyToken, updatePassword);
+userRoute.put('/api/authorization/change-password', verifyToken, updatePassword);
 userRoute.post('/api/add-user', userAdd);
 userRoute.get('/api/users', verifyToken, getAllUsers);
 userRoute.get('/api/users/:id', verifyToken, getUserById);
