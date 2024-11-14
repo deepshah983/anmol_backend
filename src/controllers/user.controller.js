@@ -248,7 +248,7 @@ const updatePassword = async (req, res) => {
     // Check if old password is correct
     const isMatch = await user.comparePassword(old_password);
     if (!isMatch) {
-      return res.status(401).json({
+      return res.status(400).json({
         error: true,
         message: "Old password is incorrect.",
       });
