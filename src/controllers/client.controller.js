@@ -357,24 +357,10 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
     try {
         const { id, ...bodyWithoutId } = req.body;
-        
-        // Check if another client with the same email already exists
-        const existingClientWithEmail = await Client.findOne({ 
-            email: bodyWithoutId.email, 
-            _id: { $ne: id } // Exclude current client being updated
-        });
-
-        if (existingClientWithEmail) {
-            return res.status(400).json({
-                message: "A client with this email already exists"
-            });
-        }
 
         // Validate the rest of the input data (excluding "id")
         const { error } = clientSchema.validate(bodyWithoutId);
         if (error) return res.status(400).json({ message: error.details[0].message });
-
-        
 
         const updatedClient = await Client.findByIdAndUpdate(req.params.id, bodyWithoutId, { new: true });
         
