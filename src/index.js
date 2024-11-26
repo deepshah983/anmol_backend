@@ -10,7 +10,12 @@ import tradingFormRoute from './routes/trading.routes.js';
 import scripRoute from './routes/scrips.routes.js';
 import zerodhaAuthTokenRouter from './routes/zerodhaAuthToken.routes.js';
 import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
 
+dotenv.config({ 
+    path: 'D:\\anmol\\anmol_backend\\.env'
+  });
 
 const app = express();
 
@@ -27,6 +32,7 @@ app.get("/", (req, res) => {
         message: "Ok"
     });
 });
+
 
 if (!process.env.JWT_SECRET) {
     console.error('FATAL ERROR: JWT_SECRET is not defined.');
